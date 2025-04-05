@@ -1,2 +1,14 @@
+# 系統檔案
 .DS_Store
-.DS_Store
+Thumbs.db
+
+# 編輯器和 IDE 檔案
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 備份檔案
+*.bak
+*.backup
+*.tmp
