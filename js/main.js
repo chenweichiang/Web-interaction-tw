@@ -802,101 +802,50 @@ class BackgroundLines {
         if (offset === 0) return { x: points[0].x, y: points[0].y };
         if (offset === 1) return { x: points[pointCount - 1].x, y: points[pointCount - 1].y };
         
-        // 使用快取的段數據以避免重複計算
-        if (!this._segmentCache) {
-            this._segmentCache = new Map();
-        }
+        // 使用貝塞爾曲線計算，而非線性插值
+        // 首先找到對應的曲線段
+        const segment = Math.floor(offset * (pointCount - 1));
+        const segmentOffset = (offset * (pointCount - 1)) % 1;
         
-        // 快取鍵
-        const cacheKey = `segments_${pointCount}_${points[0].x.toFixed(0)}_${points[0].y.toFixed(0)}`;
+        // 確保段索引有效
+        const segmentIndex = Math.min(segment, pointCount - 2);
         
-        let segments = this._segmentCache.get(cacheKey);
-        let totalLength = 0;
+        // 獲取控制點
+        const p0 = points[segmentIndex];
+        const p1 = points[segmentIndex + 1];
         
-        if (!segments) {
-            segments = [];
-            totalLength = 0;
+        // 如果有足夠的點來創建貝塞爾控制點
+        if (pointCount > 2) {
+            // 計算貝塞爾曲線控制點 (類似drawSingleLine函數的邏輯)
+            const prevPoint = segmentIndex > 0 ? points[segmentIndex - 1] : p0;
+            const nextPoint = segmentIndex + 2 < pointCount ? points[segmentIndex + 2] : p1;
             
-            // 計算所有線段和總長度
-            for (let i = 1; i < pointCount; i++) {
-                const dx = points[i].x - points[i-1].x;
-                const dy = points[i].y - points[i-1].y;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                
-                totalLength += length;
-                segments.push({
-                    startIndex: i-1,
-                    endIndex: i,
-                    length: length,
-                    startOffset: (totalLength - length) / totalLength,
-                    endOffset: totalLength / totalLength
-                });
-            }
+            // 計算控制點
+            const cp1x = p0.x + (p1.x - prevPoint.x) / 4;
+            const cp1y = p0.y + (p1.y - prevPoint.y) / 4;
+            const cp2x = p1.x - (nextPoint.x - p0.x) / 4;
+            const cp2y = p1.y - (nextPoint.y - p0.y) / 4;
             
-            if (this._segmentCache.size < 50) { // 限制快取大小
-                this._segmentCache.set(cacheKey, {
-                    segments: segments,
-                    totalLength: totalLength
-                });
-            }
+            // 使用三次貝塞爾曲線計算點 (t = segmentOffset)
+            const t = segmentOffset;
+            const t2 = t * t;
+            const t3 = t2 * t;
+            const mt = 1 - t;
+            const mt2 = mt * mt;
+            const mt3 = mt2 * mt;
+            
+            // 貝塞爾公式 B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+            const x = mt3 * p0.x + 3 * mt2 * t * cp1x + 3 * mt * t2 * cp2x + t3 * p1.x;
+            const y = mt3 * p0.y + 3 * mt2 * t * cp1y + 3 * mt * t2 * cp2y + t3 * p1.y;
+            
+            return { x, y };
         } else {
-            segments = segments.segments;
-            totalLength = segments.totalLength;
+            // 如果只有兩個點，使用線性插值
+            return {
+                x: p0.x + (p1.x - p0.x) * segmentOffset,
+                y: p0.y + (p1.y - p0.y) * segmentOffset
+            };
         }
-        
-        // 根據偏移量查找對應的段
-        const targetLength = totalLength * offset;
-        let currentLength = 0;
-        
-        // 使用二分查找快速定位線段
-        let startIdx = 0;
-        let endIdx = segments.length - 1;
-        let segmentIndex = 0;
-        
-        while (startIdx <= endIdx) {
-            const mid = Math.floor((startIdx + endIdx) / 2);
-            const segment = segments[mid];
-            
-            const segmentStart = mid > 0 ? 
-                segments.reduce((acc, seg, i) => i < mid ? acc + seg.length : acc, 0) : 0;
-            const segmentEnd = segmentStart + segment.length;
-            
-            if (targetLength >= segmentStart && targetLength <= segmentEnd) {
-                segmentIndex = mid;
-                currentLength = segmentStart;
-                break;
-            } else if (targetLength < segmentStart) {
-                endIdx = mid - 1;
-            } else {
-                startIdx = mid + 1;
-            }
-        }
-        
-        // 如果沒有找到（極少發生），使用線性搜索
-        if (startIdx > endIdx) {
-            segmentIndex = 0;
-            currentLength = 0;
-            for (let i = 0; i < segments.length; i++) {
-                if (currentLength + segments[i].length >= targetLength) {
-                    segmentIndex = i;
-                    break;
-                }
-                currentLength += segments[i].length;
-            }
-        }
-        
-        // 計算確切位置
-        const segment = segments[segmentIndex];
-        const segmentOffset = (targetLength - currentLength) / segment.length;
-        
-        const startPoint = points[segment.startIndex];
-        const endPoint = points[segment.endIndex];
-        
-        // 線性插值計算位置
-        return {
-            x: startPoint.x + (endPoint.x - startPoint.x) * segmentOffset,
-            y: startPoint.y + (endPoint.y - startPoint.y) * segmentOffset
-        };
     }
     
     // 優化的切線計算函數
