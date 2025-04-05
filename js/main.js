@@ -9,26 +9,26 @@ const CONFIG = {
     
     // 曲線點相關參數
     POINT_MIN_COUNT: 5,              // 每條曲線上最少點數
-    POINT_MAX_COUNT: 8,              // 每條曲線上最多點數
+    POINT_MAX_COUNT: 10,              // 每條曲線上最多點數
     POINT_AMPLITUDE_MIN: 30,         // 振幅最小值
-    POINT_AMPLITUDE_MAX: 150,        // 振幅最大值
+    POINT_AMPLITUDE_MAX: 200,        // 振幅最大值
     
     // 小立方體相關參數
     CUBE_SIZE: 5,                    // 小立方體的大小
     CUBES_PER_LINE: 30,              // 每條曲線上的立方體數量
-    CUBE_SPEED_MIN: 0.001,           // 立方體最小移動速度
-    CUBE_SPEED_MAX: 0.005,           // 立方體最大移動速度
+    CUBE_SPEED_MIN: 0.0001,           // 立方體最小移動速度
+    CUBE_SPEED_MAX: 0.0010,           // 立方體最大移動速度
     
     // 連線相關參數
-    CONNECTION_DISTANCE: 100,        // 立方體間連線的最大距離
+    CONNECTION_DISTANCE: 90,        // 立方體間連線的最大距離
     CONNECTION_DISTANCE_SQUARED: 10000, // 連線距離的平方值 (優化距離計算)
-    CONNECTION_LAYERS: 3,            // 不同層級的連線數
+    CONNECTION_LAYERS: 13,            // 不同層級的連線數
     
     // 三角形填充相關參數
-    MIN_TRIANGLE_AREA: 2800,         // 最小三角形面積 (過濾太小的三角形)
+    MIN_TRIANGLE_AREA: 4000,         // 最小三角形面積 (過濾太小的三角形)
     TRIANGLE_ALPHA_MIN: 0.1,         // 三角形透明度最小值
-    TRIANGLE_ALPHA_MAX: 0.3,         // 三角形透明度最大值
-    TRIANGLE_COLOR_MAX: 40,          // 三角形灰階顏色最大值 (0-255)
+    TRIANGLE_ALPHA_MAX: 0.5,         // 三角形透明度最大值
+    TRIANGLE_COLOR_MAX: 200,          // 三角形灰階顏色最大值 (0-255)
     
     // 效能優化參數
     THROTTLE_SCROLL: 16,             // 滾動事件節流時間 (毫秒)

@@ -23,6 +23,32 @@ body {
     background-color: #ffffff;
 }
 
+/* 社交媒體按鈕 */
+.social-button {
+    display: inline-block;
+    background-color: #f1f1f1;
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    text-transform: lowercase;
+    border: none;
+    line-height: 0.9rem; /* 確保文字行高一致 */
+}
+
+.social-button:hover {
+    background-color: #e0e0e0;
+    opacity: 1;
+}
+
+/* Threads 按鈕特定樣式 */
+.threads-button {
+    margin-left: 10px;
+    font-size: 0.9rem;
+}
+
 /* 容器 */
 .container {
     width: 80%;
@@ -57,10 +83,13 @@ nav {
 .nav-links {
     display: flex;
     list-style: none;
+    align-items: center; /* 確保所有項目垂直居中對齊 */
 }
 
 .nav-links li {
     margin-left: 2rem;
+    display: flex; /* 使用彈性盒子佈局 */
+    align-items: center; /* 確保內容垂直居中 */
 }
 
 .nav-links a {
@@ -68,6 +97,9 @@ nav {
     color: #333;
     font-weight: 500;
     transition: color 0.3s ease;
+    display: inline-block; /* 讓每個連結可以設置垂直內間距 */
+    padding: 8px 0; /* 與 threads 按鈕的上下內間距相同 */
+    line-height: 0.9rem; /* 與 threads 按鈕的字體大小相同 */
 }
 
 .nav-links a:hover {
@@ -150,6 +182,124 @@ section h2:after {
     z-index: 1;
 }
 
+/* 教育與經歷 */
+.education-experience {
+    padding: 5rem 0;
+    background-color: #fafafa;
+    position: relative;
+    z-index: 1;
+}
+
+.education-experience-content,
+.exhibitions-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.profile-header h3 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-header p {
+    color: #666;
+}
+
+.education-section,
+.experience-section,
+.exhibitions-section {
+    margin-bottom: 2.5rem;
+}
+
+.education-section h3,
+.experience-section h3,
+.exhibitions-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.education-section ul,
+.experience-section ul,
+.exhibitions-section ul {
+    list-style: none;
+}
+
+.education-section li,
+.experience-section li,
+.exhibitions-section li {
+    display: flex;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px dashed #eee;
+}
+
+.education-section li:last-child,
+.experience-section li:last-child,
+.exhibitions-section li:last-child {
+    border-bottom: none;
+}
+
+.year {
+    min-width: 150px;
+    font-weight: 600;
+    color: #333;
+}
+
+.degree,
+.position,
+.exhibition-details {
+    flex-grow: 1;
+    color: #555;
+}
+
+/* 展覽經歷 */
+.exhibitions {
+    padding: 5rem 0;
+    background-color: #fafafa;
+    position: relative;
+    z-index: 1;
+}
+
+.exhibitions-content {
+    display: flex;
+    justify-content: center;
+}
+
+.exhibitions-list {
+    max-width: 800px;
+    width: 100%;
+}
+
+.exhibitions-list ul {
+    list-style: none;
+}
+
+.exhibitions-list li {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
+
+.exhibitions-list .year {
+    min-width: 100px;
+    font-weight: 600;
+    color: #333;
+}
+
+.exhibitions-list .exhibition-name {
+    flex-grow: 1;
+    color: #555;
+}
+
+/* 作品集的其他樣式 */
 .portfolio-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
