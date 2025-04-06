@@ -682,18 +682,6 @@ class BackgroundLines {
         // 按透明度和顏色分組
         const groups = {};
         
-        // 初始化聲音觸發器（如果尚未初始化）
-        if (!this._soundTrigger && window.audioModule) {
-            // 使用更長的時間間隔 (1500ms)，大幅減少音效觸發頻率
-            console.log('使用預載的音訊模組進行三角形聲音觸發');
-            this._soundTrigger = window.audioModule.createThrottledSoundTrigger(1500);
-            console.log('聲音觸發器已創建，當前聲音狀態：', window.soundEnabled ? '開啟' : '關閉');
-        } else if (!this._soundTrigger) {
-            // 設置空函數作為默認值，避免錯誤
-            this._soundTrigger = () => null;
-            console.log('聲音觸發器初始化為空函數，等待音訊模組載入');
-        }
-        
         // 追蹤每幀新生成的三角形
         const newTrianglesThisFrame = [];
         
@@ -726,14 +714,12 @@ class BackgroundLines {
             const triangleInfo = {p1, p2, p3, area};
             groups[colorKey].triangles.push(triangleInfo);
             
-            // 生成三角形的唯一ID，使用加大四捨五入精度，減少重複觸發
+            // 禁用所有三角形的聲音觸發邏輯 - 保留生成ID但不觸發聲音
             const triangleId = `${Math.round(p1.x/20)}_${Math.round(p1.y/20)}_${Math.round(p2.x/20)}_${Math.round(p2.y/20)}_${Math.round(p3.x/20)}_${Math.round(p3.y/20)}`;
             
-            // 初始化歷史記錄（如果需要）
             if (!this._triangleHistory) {
                 this._triangleHistory = new Set();
                 this._isFirstRun = true;
-                this._lastSoundTriggerTime = Date.now();
             }
             
             if (!this._triangleHistory.has(triangleId)) {
@@ -741,64 +727,20 @@ class BackgroundLines {
                 
                 // 控制歷史記錄大小：移除舊三角形
                 if (this._triangleHistory.size > 150) {
-                    // 使用更高效的方法清除歷史記錄
                     const oldKeys = Array.from(this._triangleHistory).slice(0, 50);
                     oldKeys.forEach(key => this._triangleHistory.delete(key));
                 }
                 
-                // 只有在非首次運行時添加新三角形
-                if (!this._isFirstRun) {
-                    newTrianglesThisFrame.push({
-                        ...triangleInfo,
-                        baseColor: greyValue,
-                        alpha: alpha,
-                        minArea: CONFIG.MIN_TRIANGLE_AREA
-                    });
-                }
+                // 完全禁用聲音觸發
+                // （移除所有相關聲音代碼）
             }
         }
         
-        // 取消首次運行標記
-        if (this._isFirstRun) {
-            this._isFirstRun = false;
-            console.log('首次三角形渲染完成，後續將觸發聲音');
-        }
-        
-        // 大幅限制三角形音效觸發
-        // 1. 確保距離上次觸發至少 2 秒鐘
-        // 2. 只有當新三角形數量較少時才觸發聲音，避免聲音堆疊過多
-        const now = Date.now();
-        const timeSinceLastTrigger = now - (this._lastSoundTriggerTime || 0);
-        
-        if (newTrianglesThisFrame.length > 0 && 
-            newTrianglesThisFrame.length < 3 && 
-            timeSinceLastTrigger > 2000 && 
-            this._soundTrigger) {
-            
-            // 檢查聲音是否啟用
-            const soundIsEnabled = typeof window.soundEnabled !== 'undefined' ? window.soundEnabled : false;
-            
-            if (soundIsEnabled) {
-                // 只選擇面積最大的三角形來產生聲音
-                newTrianglesThisFrame.sort((a, b) => b.area - a.area);
-                const selectedTriangle = newTrianglesThisFrame[0];
-                
-                // 更新最後一次觸發時間
-                this._lastSoundTriggerTime = now;
-                
-                // 使用 setTimeout 延遲調用音效，避免在動畫循環中直接調用
-                setTimeout(() => {
-                    try {
-                        this._soundTrigger(selectedTriangle);
-                    } catch (err) {
-                        console.error('觸發三角形聲音時發生錯誤:', err);
-                        // 發生錯誤時重置觸發器
-                        if (window.audioModule) {
-                            this._soundTrigger = window.audioModule.createThrottledSoundTrigger(2000);
-                        }
-                    }
-                }, 50);
-            }
+        // 禁用聲音觸發器初始化代碼
+        if (!this._soundTrigger) {
+            // 設置空函數作為聲音觸發器
+            this._soundTrigger = () => null;
+            console.log('聲音觸發已永久禁用');
         }
         
         // 批次渲染每個分組
