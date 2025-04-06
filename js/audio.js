@@ -487,13 +487,13 @@ class AudioSynthesizer {
         this.masterGainNode.gain.value = Math.max(0, Math.min(1, value));
     }
 
-    // 根據三角形數據產生高音聲音 (取代之前的噪音方法)
+    // 根據三角形數據產生更舒適的低音和高音混合
     playTriangleSound(triangleData) {
         // 確保上下文初始化
         if (!this.initialized) {
-            console.warn('播放三角形高音前需要初始化音訊上下文');
+            console.warn('播放三角形聲音前需要初始化音訊上下文');
             if (!this.forceInit()) {
-                console.error('無法初始化音訊上下文，無法播放三角形高音');
+                console.error('無法初始化音訊上下文，無法播放三角形聲音');
                 return null;
             }
         }
@@ -514,16 +514,15 @@ class AudioSynthesizer {
             const areaRatio = (normalizedArea - minArea) / (maxArea - minArea);
             
             // 使用透明度調整音量，並確保可聽見
-            const volume = Math.min(alpha * 3, 0.4) + 0.15;
+            const volume = Math.min(alpha * 2.5, 0.35) + 0.15;
             
-            // 使用面積決定頻率 - 小三角形=更高的頻率
-            // 使用 3000-8000Hz 的範圍，人耳對這個範圍的高頻很敏感
-            const frequency = 3000 + (1 - areaRatio) * 5000; // 3000-8000Hz
+            // 降低整體頻率範圍到更舒適的聽覺範圍 (800-3000Hz)
+            // 800-1500Hz 是人耳最舒適的聽覺範圍之一
+            const frequency = 800 + (1 - areaRatio) * 2200; // 800-3000Hz
             
-            // 使用顏色和面積調整持續時間
-            // 較長的持續時間，與三角形出現的節奏匹配
+            // 明顯延長持續時間，讓聲音能更好地與三角形視覺同步
             const colorNormalized = baseColor / 255; // 0-1之間
-            const duration = 0.3 + (0.7 - areaRatio * 0.4) * (1 - colorNormalized); // 0.3-1.0秒之間
+            const duration = 0.8 + (1.2 - areaRatio * 0.6) * (1 - colorNormalized); // 0.8-2.0秒之間
             
             // 處理位置信息
             let centerX = 0, centerY = 0;
@@ -541,25 +540,28 @@ class AudioSynthesizer {
             // 創建振盪器和增益節點
             const oscillator = this.audioContext.createOscillator();
             
-            // 使用三角波獲得更柔和的高音，或 sine 獲得純淨的高音
-            oscillator.type = Math.random() > 0.5 ? 'triangle' : 'sine';
+            // 使用正弦波可以獲得更純淨的音色，對耳朵更友好
+            oscillator.type = 'sine';
             oscillator.frequency.value = frequency;
+            
+            // 添加第二個振盪器以增加豐富感
+            const oscillator2 = this.audioContext.createOscillator();
+            oscillator2.type = 'triangle'; // 三角波提供不同的音色
+            oscillator2.frequency.value = frequency * 1.5; // 略高的頻率
             
             // 創建增益節點控制音量
             const gainNode = this.audioContext.createGain();
             gainNode.gain.value = 0; // 初始音量為 0，避免爆音
             
-            // 添加一個高通濾波器讓高頻更突出
-            const highpassFilter = this.audioContext.createBiquadFilter();
-            highpassFilter.type = 'highpass';
-            highpassFilter.frequency.value = 1500; // 截止頻率
-            highpassFilter.Q.value = 1.2; // 共振
+            const gainNode2 = this.audioContext.createGain();
+            gainNode2.gain.value = 0;
+            gainNode2.gain.value = volume * 0.4; // 次要振盪器音量較低
             
-            // 添加一個高頻增強濾波器
-            const highshelfFilter = this.audioContext.createBiquadFilter();
-            highshelfFilter.type = 'highshelf';
-            highshelfFilter.frequency.value = 2000;
-            highshelfFilter.gain.value = 10; // 高頻增益
+            // 添加溫和的濾波器使聲音更舒適
+            const lowpassFilter = this.audioContext.createBiquadFilter();
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.value = 5000; // 限制高頻成分
+            lowpassFilter.Q.value = 0.7; // 溫和的共振
             
             // 創建聲相節點
             const panner = this.audioContext.createStereoPanner();
@@ -567,15 +569,16 @@ class AudioSynthesizer {
             
             // 連接音訊處理鏈
             oscillator.connect(gainNode);
-            gainNode.connect(highpassFilter);
-            highpassFilter.connect(highshelfFilter);
-            highshelfFilter.connect(panner);
+            oscillator2.connect(gainNode2);
+            gainNode.connect(lowpassFilter);
+            gainNode2.connect(lowpassFilter);
+            lowpassFilter.connect(panner);
             panner.connect(this.masterGainNode);
             
-            // 設置柔和的淡入淡出效果，更長的持續時間
+            // 設置更柔和的淡入淡出效果，延長持續時間
             const currentTime = this.audioContext.currentTime;
-            const fadeInTime = 0.03; // 較柔和的淡入
-            const fadeOutTime = 0.2; // 較長的淡出
+            const fadeInTime = 0.08; // 更柔和的淡入
+            const fadeOutTime = 0.4; // 更長的淡出
             
             // 使用指數淡入淡出，聽起來更自然
             gainNode.gain.setValueAtTime(0.0001, currentTime);
@@ -585,15 +588,23 @@ class AudioSynthesizer {
             gainNode.gain.setValueAtTime(volume, currentTime + duration - fadeOutTime);
             gainNode.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
             
+            // 第二個振盪器的淡入淡出
+            gainNode2.gain.setValueAtTime(0.0001, currentTime);
+            gainNode2.gain.exponentialRampToValueAtTime(volume * 0.4, currentTime + fadeInTime * 1.2);
+            gainNode2.gain.setValueAtTime(volume * 0.4, currentTime + duration - fadeOutTime * 1.2);
+            gainNode2.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
+            
             // 啟動振盪器並設置停止時間
             oscillator.start(currentTime);
             oscillator.stop(currentTime + duration);
+            oscillator2.start(currentTime);
+            oscillator2.stop(currentTime + duration);
             
-            console.log(`播放三角形高音: 頻率=${frequency.toFixed(0)}Hz, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒, 聲相=${panValue.toFixed(2)}`);
+            console.log(`播放三角形舒適音調: 主頻率=${frequency.toFixed(0)}Hz, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒, 聲相=${panValue.toFixed(2)}`);
             
             // 將相關信息返回
             return {
-                type: 'high_tone',
+                type: 'comfortable_tone',
                 frequency: frequency,
                 duration: duration,
                 volume: volume,
@@ -602,12 +613,12 @@ class AudioSynthesizer {
                 gainNode: gainNode
             };
         } catch (err) {
-            console.error('播放三角形高音時發生錯誤:', err);
+            console.error('播放三角形聲音時發生錯誤:', err);
             return null;
         }
     }
     
-    // 取代原來的三角形和弦方法，改為使用多層高音
+    // 取代原來的三角形和弦方法，改為使用多層舒適音調
     playTriangleChord(triangleData) {
         // 確保上下文初始化
         if (!this.initialized) {
@@ -632,7 +643,7 @@ class AudioSynthesizer {
             const areaRatio = Math.min(area / (minArea * 10), 1);
             
             // 基於面積和透明度的音量
-            const baseVolume = Math.min(alpha * 3, 0.4) + 0.1;
+            const baseVolume = Math.min(alpha * 2.5, 0.35) + 0.1;
             
             // 處理位置信息
             let centerX = 0, centerY = 0;
@@ -647,18 +658,19 @@ class AudioSynthesizer {
             // 計算聲相
             const panValue = (centerX / window.innerWidth) * 2 - 1; // -1到1之間
             
-            // 使用顏色和面積計算持續時間 - 延長持續時間
+            // 使用顏色和面積計算持續時間 - 更長的持續時間
             const colorNormalized = baseColor / 255; // 0-1之間
-            const baseDuration = 0.6 + (1 - colorNormalized) * 0.9; // 0.6-1.5秒之間
+            const baseDuration = 1.2 + (1.4 - colorNormalized) * 1.0; // 1.2-2.6秒之間
             
-            // 創建多層高音效果
+            // 創建多層音調效果
             const toneResults = [];
             
-            // 主要高音 (最高頻率)
-            const mainFrequency = 4000 + (1 - areaRatio) * 4000; // 4000-8000Hz之間
+            // 主要音調 (中頻範圍)
+            // 使用舒適的中頻音域 (1000-2000Hz)
+            const mainFrequency = 1000 + (1 - areaRatio) * 1000; // 1000-2000Hz之間
             
-            // 播放主要高音
-            const mainTone = this._playEnhancedTone(
+            // 播放主要音調
+            const mainTone = this._playComfortableTone(
                 'sine',
                 mainFrequency,
                 baseDuration,
@@ -667,67 +679,70 @@ class AudioSynthesizer {
             );
             toneResults.push(mainTone);
             
-            // 第二層 - 次高音 (稍微延遲，稍低頻率)
+            // 第二層 - 輔助音調 (和諧音程)
             setTimeout(() => {
-                const secondary = this._playEnhancedTone(
-                    'triangle',
-                    mainFrequency * 0.667, // 音程關係: 5度
-                    baseDuration * 0.8,
-                    baseVolume * 0.7,
-                    panValue * 0.6
+                // 完美5度 (3:2 比例) - 聽起來很和諧
+                const secondary = this._playComfortableTone(
+                    'sine',
+                    mainFrequency * 1.5, 
+                    baseDuration * 0.9,
+                    baseVolume * 0.6,
+                    panValue * 0.5
                 );
-            }, 30); // 30毫秒延遲
+            }, 100); // 100毫秒延遲，稍微錯開但仍保持協調
             
-            // 第三層 - 只對較大三角形添加一個最低的音調
-            if (area > minArea * 3) {
+            // 第三層 - 只對較大三角形添加一個低音
+            if (area > minArea * 2) { // 降低門檻，更多三角形會觸發和弦
                 setTimeout(() => {
-                    const tertiary = this._playEnhancedTone(
+                    // 低八度 (1:2 比例)
+                    const tertiary = this._playComfortableTone(
                         'sine',
-                        mainFrequency * 0.5, // 音程關係: 八度
-                        baseDuration * 0.7,
-                        baseVolume * 0.5,
-                        panValue * -0.5 // 相反方向的立體聲
+                        mainFrequency * 0.5, // 低八度
+                        baseDuration * 1.2, // 低音持續更久
+                        baseVolume * 0.7,
+                        panValue * -0.3 // 相反方向的立體聲，但不要太極端
                     );
-                }, 60); // 60毫秒延遲
+                }, 200); // 200毫秒延遲
             }
             
-            console.log(`播放三角形高音和弦: 主頻率=${mainFrequency.toFixed(0)}Hz, 音量=${baseVolume.toFixed(2)}, 時長=${baseDuration.toFixed(2)}秒`);
+            console.log(`播放三角形舒適和弦: 主頻率=${mainFrequency.toFixed(0)}Hz, 音量=${baseVolume.toFixed(2)}, 時長=${baseDuration.toFixed(2)}秒`);
             
             return {
-                type: 'high_tone_chord',
+                type: 'comfortable_chord',
                 mainFrequency: mainFrequency,
                 duration: baseDuration,
                 volume: baseVolume,
-                layers: area > minArea * 3 ? 3 : 2
+                layers: area > minArea * 2 ? 3 : 2
             };
         } catch (err) {
-            console.error('播放三角形高音和弦時發生錯誤:', err);
+            console.error('播放三角形和弦時發生錯誤:', err);
             return null;
         }
     }
     
-    // 輔助方法: 播放增強的高音
-    _playEnhancedTone(waveType, frequency, duration, volume, pan = 0) {
+    // 輔助方法: 播放舒適音調
+    _playComfortableTone(waveType, frequency, duration, volume, pan = 0) {
         try {
             // 創建振盪器
             const oscillator = this.audioContext.createOscillator();
-            oscillator.type = waveType; // sine, triangle
+            oscillator.type = waveType; // 主要使用 sine
             oscillator.frequency.value = frequency;
             
             // 創建增益節點
             const gainNode = this.audioContext.createGain();
             gainNode.gain.value = 0; // 初始音量為 0，避免爆音
             
-            // 添加一個高通濾波器讓聲音更乾淨
-            const highpassFilter = this.audioContext.createBiquadFilter();
-            highpassFilter.type = 'highpass';
-            highpassFilter.frequency.value = frequency * 0.7; // 截止頻率
+            // 添加一個溫和的濾波器使聲音更圓潤
+            const lowpassFilter = this.audioContext.createBiquadFilter();
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.value = 8000; // 溫和地限制高頻
+            lowpassFilter.Q.value = 0.5; // 溫和的共振
             
-            // 添加一個高頻增強濾波器
-            const highshelfFilter = this.audioContext.createBiquadFilter();
-            highshelfFilter.type = 'highshelf';
-            highshelfFilter.frequency.value = frequency * 0.8;
-            highshelfFilter.gain.value = 5; // 高頻增益
+            // 創建一個溫和的高頻柔化濾波器
+            const highShelfFilter = this.audioContext.createBiquadFilter();
+            highShelfFilter.type = 'highshelf';
+            highShelfFilter.frequency.value = 3000;
+            highShelfFilter.gain.value = -3; // 輕微降低高頻
             
             // 創建聲相節點
             const panner = this.audioContext.createStereoPanner();
@@ -735,15 +750,15 @@ class AudioSynthesizer {
             
             // 連接音訊處理鏈
             oscillator.connect(gainNode);
-            gainNode.connect(highpassFilter);
-            highpassFilter.connect(highshelfFilter);
-            highshelfFilter.connect(panner);
+            gainNode.connect(lowpassFilter);
+            lowpassFilter.connect(highShelfFilter);
+            highShelfFilter.connect(panner);
             panner.connect(this.masterGainNode);
             
-            // 設置柔和的淡入淡出效果
+            // 設置更柔和的淡入淡出效果
             const currentTime = this.audioContext.currentTime;
-            const fadeInTime = 0.04; // 較柔和的淡入
-            const fadeOutTime = 0.25; // 較長的淡出
+            const fadeInTime = 0.1; // 更長的柔和淡入
+            const fadeOutTime = 0.5; // 更長的淡出
             
             // 使用指數淡入淡出，聽起來更自然
             gainNode.gain.setValueAtTime(0.0001, currentTime);
@@ -767,7 +782,7 @@ class AudioSynthesizer {
                 gainNode: gainNode
             };
         } catch (err) {
-            console.error('播放增強高音時發生錯誤:', err);
+            console.error('播放舒適音調時發生錯誤:', err);
             return null;
         }
     }
@@ -846,27 +861,27 @@ window.audioModule = {
     },
     
     // 輔助函數，限制一段時間內的聲音觸發頻率
-    createThrottledSoundTrigger: (interval = 300) => {
+    createThrottledSoundTrigger: (interval = 100) => {
         let lastPlayTime = 0;
         let trianglesPlayed = 0;
         
         return (triangleData) => {
             const now = Date.now();
             
-            // 確保不會在短時間內產生太多聲音
-            if (now - lastPlayTime >= interval && trianglesPlayed < 5) {
+            // 降低限制間隔並提高允許的同時聲音數量，使更多三角形能發出聲音
+            if (now - lastPlayTime >= interval && trianglesPlayed < 8) {
                 lastPlayTime = now;
                 trianglesPlayed++;
                 
-                // 5秒後重置計數器
+                // 3秒後重置計數器，加快重置節奏
                 setTimeout(() => {
                     trianglesPlayed = Math.max(0, trianglesPlayed - 1);
-                }, 5000);
+                }, 3000);
                 
                 console.log(`觸發三角形聲音: 面積=${triangleData.area.toFixed(0)}, Alpha=${triangleData.alpha.toFixed(2)}`);
                 
-                // 隨機選擇播放單音或和弦
-                if (Math.random() > 0.6) {
+                // 調整機率，增加和弦的觸發頻率
+                if (Math.random() > 0.4) {
                     return synth.playTriangleChord(triangleData);
                 } else {
                     return synth.playTriangleSound(triangleData);
