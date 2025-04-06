@@ -487,13 +487,13 @@ class AudioSynthesizer {
         this.masterGainNode.gain.value = Math.max(0, Math.min(1, value));
     }
 
-    // 根據三角形數據產生噪音 (取代之前的三角形聲音方法)
+    // 根據三角形數據產生高音聲音 (取代之前的噪音方法)
     playTriangleSound(triangleData) {
         // 確保上下文初始化
         if (!this.initialized) {
-            console.warn('播放三角形噪音前需要初始化音訊上下文');
+            console.warn('播放三角形高音前需要初始化音訊上下文');
             if (!this.forceInit()) {
-                console.error('無法初始化音訊上下文，無法播放三角形噪音');
+                console.error('無法初始化音訊上下文，無法播放三角形高音');
                 return null;
             }
         }
@@ -507,193 +507,113 @@ class AudioSynthesizer {
                 return null;
             }
             
-            // 使用面積決定噪音類型和頻率變化
-            // 細小三角形：調整過的高頻白噪音 / 中等三角形：調整過的白噪音 / 大三角形：調整過的粉紅噪音
+            // 標準化面積
             const minArea = triangleData.minArea || 1000;
             const maxArea = minArea * 20;
             const normalizedArea = Math.min(Math.max(area, minArea), maxArea);
             const areaRatio = (normalizedArea - minArea) / (maxArea - minArea);
             
-            // 始終使用白噪音作為基礎，但進行頻率調整
-            let noiseType = 'white';
+            // 使用透明度調整音量，並確保可聽見
+            const volume = Math.min(alpha * 3, 0.4) + 0.15;
             
-            // 使用透明度調整音量，並稍微提高整體音量以確保可聽見
-            const volume = Math.min(alpha * 3, 0.5) + 0.1;
+            // 使用面積決定頻率 - 小三角形=更高的頻率
+            // 使用 3000-8000Hz 的範圍，人耳對這個範圍的高頻很敏感
+            const frequency = 3000 + (1 - areaRatio) * 5000; // 3000-8000Hz
             
-            // 使用顏色和面積調整持續時間，較小的三角形持續時間更短更清脆
+            // 使用顏色和面積調整持續時間
+            // 較長的持續時間，與三角形出現的節奏匹配
             const colorNormalized = baseColor / 255; // 0-1之間
-            const duration = Math.max(0.08, 0.1 + (0.3 - areaRatio * 0.2) * (1 - colorNormalized)); // 0.08-0.4秒之間
+            const duration = 0.3 + (0.7 - areaRatio * 0.4) * (1 - colorNormalized); // 0.3-1.0秒之間
             
-            // 三角形座標計算
+            // 處理位置信息
             let centerX = 0, centerY = 0;
             if (p1 && p2 && p3) {
                 centerX = (p1.x + p2.x + p3.x) / 3;
                 centerY = (p1.y + p2.y + p3.y) / 3;
             } else {
-                // 如果沒有座標，使用螢幕中心
                 centerX = window.innerWidth / 2;
                 centerY = window.innerHeight / 2;
             }
             
-            // 使用位置信息創建細緻的高音噪音
-            // 計算立體聲效果
+            // 使用位置決定聲音的立體聲效果
             const panValue = (centerX / window.innerWidth) * 2 - 1; // -1到1之間
             
-            // 使用高通濾波器來突出高頻
+            // 創建振盪器和增益節點
+            const oscillator = this.audioContext.createOscillator();
+            
+            // 使用三角波獲得更柔和的高音，或 sine 獲得純淨的高音
+            oscillator.type = Math.random() > 0.5 ? 'triangle' : 'sine';
+            oscillator.frequency.value = frequency;
+            
+            // 創建增益節點控制音量
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0; // 初始音量為 0，避免爆音
+            
+            // 添加一個高通濾波器讓高頻更突出
             const highpassFilter = this.audioContext.createBiquadFilter();
             highpassFilter.type = 'highpass';
+            highpassFilter.frequency.value = 1500; // 截止頻率
+            highpassFilter.Q.value = 1.2; // 共振
             
-            // 使用面積決定濾波器截止頻率 - 小面積=更高的截止頻率
-            // 人耳對2000-5000Hz範圍最敏感，將截止頻率調整至此範圍
-            const filterFrequency = 2000 + (1 - areaRatio) * 3000; // 2000-5000Hz
-            highpassFilter.frequency.value = filterFrequency;
+            // 添加一個高頻增強濾波器
+            const highshelfFilter = this.audioContext.createBiquadFilter();
+            highshelfFilter.type = 'highshelf';
+            highshelfFilter.frequency.value = 2000;
+            highshelfFilter.gain.value = 10; // 高頻增益
             
-            // 調整Q值使聲音更尖銳清晰
-            highpassFilter.Q.value = 1 + areaRatio * 5; // 1-6之間的Q值
-            
-            // 產生基本噪音
-            const noiseResult = this._createEnhancedNoise(noiseType, duration, volume, filterFrequency);
-            
-            // 建立音訊處理鏈
+            // 創建聲相節點
             const panner = this.audioContext.createStereoPanner();
             panner.pan.value = panValue;
             
-            // 連接節點：噪音源 -> 增益節點 -> 高通濾波器 -> 聲相節點 -> 主增益
-            noiseResult.gainNode.connect(highpassFilter);
-            highpassFilter.connect(panner);
+            // 連接音訊處理鏈
+            oscillator.connect(gainNode);
+            gainNode.connect(highpassFilter);
+            highpassFilter.connect(highshelfFilter);
+            highshelfFilter.connect(panner);
             panner.connect(this.masterGainNode);
             
-            console.log(`播放三角形高頻噪音: 截止頻率=${filterFrequency.toFixed(0)}Hz, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒, 聲相=${panValue.toFixed(2)}`);
+            // 設置柔和的淡入淡出效果，更長的持續時間
+            const currentTime = this.audioContext.currentTime;
+            const fadeInTime = 0.03; // 較柔和的淡入
+            const fadeOutTime = 0.2; // 較長的淡出
+            
+            // 使用指數淡入淡出，聽起來更自然
+            gainNode.gain.setValueAtTime(0.0001, currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(volume, currentTime + fadeInTime);
+            
+            // 較長的持續音量階段
+            gainNode.gain.setValueAtTime(volume, currentTime + duration - fadeOutTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
+            
+            // 啟動振盪器並設置停止時間
+            oscillator.start(currentTime);
+            oscillator.stop(currentTime + duration);
+            
+            console.log(`播放三角形高音: 頻率=${frequency.toFixed(0)}Hz, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒, 聲相=${panValue.toFixed(2)}`);
             
             // 將相關信息返回
             return {
-                type: noiseType,
+                type: 'high_tone',
+                frequency: frequency,
                 duration: duration,
                 volume: volume,
-                filterFrequency: filterFrequency,
                 pan: panValue,
-                source: noiseResult.source,
-                gainNode: noiseResult.gainNode
+                oscillator: oscillator,
+                gainNode: gainNode
             };
         } catch (err) {
-            console.error('播放三角形噪音時發生錯誤:', err);
+            console.error('播放三角形高音時發生錯誤:', err);
             return null;
         }
     }
     
-    // 內部方法 - 創建增強的噪音 (更細緻的高頻)
-    _createEnhancedNoise(type = 'white', duration = 0.2, volume = 0.5, filterFrequency = 3000) {
-        // 創建緩衝區
-        const bufferSize = this.audioContext.sampleRate * duration;
-        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-        const data = buffer.getChannelData(0);
-        
-        // 根據過濾頻率調整噪音特性
-        const freqFactor = filterFrequency / 5000; // 標準化到0-1之間
-        
-        // 生成噪音數據
-        switch (type) {
-            case 'white':
-                // 增強的白噪音：強調變化率
-                let lastValue = 0;
-                for (let i = 0; i < bufferSize; i++) {
-                    // 生成基本白噪音
-                    const basicNoise = Math.random() * 2 - 1;
-                    
-                    // 增加快速變化以強調高頻
-                    const changeRate = freqFactor * 0.4; // 變化率因子
-                    lastValue = lastValue * (1 - changeRate) + basicNoise * changeRate;
-                    
-                    // 添加額外的高頻變化
-                    data[i] = lastValue + (Math.random() * 2 - 1) * freqFactor * 0.6;
-                    
-                    // 確保值在-1到1之間
-                    data[i] = Math.max(-1, Math.min(1, data[i]));
-                }
-                break;
-            
-            case 'pink':
-                // 標準粉紅噪音但調整為突出高頻
-                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-                for (let i = 0; i < bufferSize; i++) {
-                    const white = Math.random() * 2 - 1;
-                    
-                    // 標準粉紅噪音過濾器
-                    b0 = 0.99886 * b0 + white * 0.0555179;
-                    b1 = 0.99332 * b1 + white * 0.0750759;
-                    b2 = 0.96900 * b2 + white * 0.1538520;
-                    b3 = 0.86650 * b3 + white * 0.3104856;
-                    b4 = 0.55000 * b4 + white * 0.5329522;
-                    b5 = -0.7616 * b5 - white * 0.0168980;
-                    
-                    // 基本粉紅噪音
-                    let pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                    pink *= 0.11;
-                    
-                    // 添加額外的高頻成分 (加權混合白噪音)
-                    const highFreqComponent = (Math.random() * 2 - 1) * freqFactor;
-                    data[i] = pink * (1 - freqFactor * 0.7) + highFreqComponent * 0.5;
-                    
-                    b6 = white * 0.115926;
-                }
-                break;
-            
-            default:
-                // 默認使用增強的白噪音
-                for (let i = 0; i < bufferSize; i++) {
-                    // 基本噪音
-                    data[i] = Math.random() * 2 - 1;
-                    
-                    // 增加額外的高頻變化
-                    if (i > 0) {
-                        // 在相鄰樣本間添加高頻振盪
-                        data[i] = (data[i] + data[i-1]) * 0.5 + (Math.random() * 2 - 1) * freqFactor * 0.8;
-                    }
-                }
-                break;
-        }
-        
-        // 創建緩衝源
-        const noiseSource = this.audioContext.createBufferSource();
-        noiseSource.buffer = buffer;
-        
-        // 創建增益節點
-        const gainNode = this.audioContext.createGain();
-        gainNode.gain.value = volume;
-        
-        // 設置快速淡入淡出效果
-        const currentTime = this.audioContext.currentTime;
-        
-        // 超短淡入淡出避免爆音但保持清脆感
-        const fadeInTime = 0.005; // 5毫秒淡入
-        const fadeOutTime = 0.015; // 15毫秒淡出
-        
-        gainNode.gain.setValueAtTime(0, currentTime);
-        gainNode.gain.linearRampToValueAtTime(volume, currentTime + fadeInTime);
-        gainNode.gain.setValueAtTime(volume, currentTime + duration - fadeOutTime);
-        gainNode.gain.linearRampToValueAtTime(0, currentTime + duration);
-        
-        // 連接增益節點
-        noiseSource.connect(gainNode);
-        
-        // 啟動噪音
-        noiseSource.start();
-        noiseSource.stop(currentTime + duration);
-        
-        return {
-            source: noiseSource,
-            gainNode: gainNode,
-            duration: duration
-        };
-    }
-    
-    // 取代原來的三角形和弦方法，改為使用多層高頻噪音
+    // 取代原來的三角形和弦方法，改為使用多層高音
     playTriangleChord(triangleData) {
         // 確保上下文初始化
         if (!this.initialized) {
-            console.warn('播放三角形合成噪音前需要初始化音訊上下文');
+            console.warn('播放三角形和弦前需要初始化音訊上下文');
             if (!this.forceInit()) {
-                console.error('無法初始化音訊上下文，無法播放三角形合成噪音');
+                console.error('無法初始化音訊上下文，無法播放三角形和弦');
                 return null;
             }
         }
@@ -707,10 +627,14 @@ class AudioSynthesizer {
                 return null;
             }
             
-            // 使用三角形的幾何特徵來創建分層高頻噪音效果
+            // 標準化面積比例
             const minArea = triangleData.minArea || 1000;
+            const areaRatio = Math.min(area / (minArea * 10), 1);
             
-            // 取得位置信息
+            // 基於面積和透明度的音量
+            const baseVolume = Math.min(alpha * 3, 0.4) + 0.1;
+            
+            // 處理位置信息
             let centerX = 0, centerY = 0;
             if (p1 && p2 && p3) {
                 centerX = (p1.x + p2.x + p3.x) / 3;
@@ -720,121 +644,130 @@ class AudioSynthesizer {
                 centerY = window.innerHeight / 2;
             }
             
-            // 使用立體聲效果
+            // 計算聲相
             const panValue = (centerX / window.innerWidth) * 2 - 1; // -1到1之間
             
-            // 標準化面積比例
-            const areaRatio = Math.min(area / (minArea * 10), 1);
+            // 使用顏色和面積計算持續時間 - 延長持續時間
+            const colorNormalized = baseColor / 255; // 0-1之間
+            const baseDuration = 0.6 + (1 - colorNormalized) * 0.9; // 0.6-1.5秒之間
             
-            // 基於面積和透明度的音量
-            const baseVolume = Math.min(alpha * 3, 0.5) + 0.05;
+            // 創建多層高音效果
+            const toneResults = [];
             
-            // 持續時間稍長一些
-            const baseDuration = 0.15 + areaRatio * 0.25; // 0.15-0.4秒
+            // 主要高音 (最高頻率)
+            const mainFrequency = 4000 + (1 - areaRatio) * 4000; // 4000-8000Hz之間
             
-            // 創建多層噪音效果
-            const noiseResults = [];
+            // 播放主要高音
+            const mainTone = this._playEnhancedTone(
+                'sine',
+                mainFrequency,
+                baseDuration,
+                baseVolume,
+                panValue
+            );
+            toneResults.push(mainTone);
             
-            // 第一層 - 主要高頻噪音
-            // 使用3000-6000Hz的頻率範圍
-            const mainFrequency = 3000 + (1 - areaRatio) * 3000;
-            noiseResults.push(this._playEnhancedNoiseWithPan(
-                'white', 
-                baseDuration, 
-                baseVolume, 
-                panValue,
-                mainFrequency
-            ));
-            
-            // 第二層 - 次高頻噪音 (稍微延遲，稍低頻率)
+            // 第二層 - 次高音 (稍微延遲，稍低頻率)
             setTimeout(() => {
-                const layer2Frequency = 2000 + (1 - areaRatio) * 2500;
-                const layer2Volume = baseVolume * 0.7;
-                const layer2Duration = baseDuration * 0.7;
-                
-                this._playEnhancedNoiseWithPan(
-                    'white', 
-                    layer2Duration, 
-                    layer2Volume, 
-                    panValue * 0.7, 
-                    layer2Frequency
+                const secondary = this._playEnhancedTone(
+                    'triangle',
+                    mainFrequency * 0.667, // 音程關係: 5度
+                    baseDuration * 0.8,
+                    baseVolume * 0.7,
+                    panValue * 0.6
                 );
-            }, 15); // 只延遲15毫秒，保持聲音連貫性
+            }, 30); // 30毫秒延遲
             
-            noiseResults.push({ delayed: true });
-            
-            // 第三層 - 只對較大三角形添加一個更高頻的短暫噪音
+            // 第三層 - 只對較大三角形添加一個最低的音調
             if (area > minArea * 3) {
                 setTimeout(() => {
-                    // 使用極高頻率，但音量更小、時間更短
-                    const layer3Frequency = 4500 + (1 - areaRatio) * 2500;
-                    const layer3Volume = baseVolume * 0.5;
-                    const layer3Duration = baseDuration * 0.4;
-                    
-                    this._playEnhancedNoiseWithPan(
-                        'white', 
-                        layer3Duration, 
-                        layer3Volume, 
-                        panValue * -0.5,  // 相反方向的立體聲
-                        layer3Frequency
+                    const tertiary = this._playEnhancedTone(
+                        'sine',
+                        mainFrequency * 0.5, // 音程關係: 八度
+                        baseDuration * 0.7,
+                        baseVolume * 0.5,
+                        panValue * -0.5 // 相反方向的立體聲
                     );
-                }, 30); // 30毫秒延遲
-                
-                noiseResults.push({ delayed: true });
+                }, 60); // 60毫秒延遲
             }
             
-            console.log(`播放三角形高頻合成噪音: 主頻率=${mainFrequency.toFixed(0)}Hz, 音量=${baseVolume.toFixed(2)}, 層數=${noiseResults.length}`);
+            console.log(`播放三角形高音和弦: 主頻率=${mainFrequency.toFixed(0)}Hz, 音量=${baseVolume.toFixed(2)}, 時長=${baseDuration.toFixed(2)}秒`);
             
             return {
-                type: 'layered_high_noise',
-                layers: noiseResults.length,
+                type: 'high_tone_chord',
                 mainFrequency: mainFrequency,
                 duration: baseDuration,
-                volume: baseVolume
+                volume: baseVolume,
+                layers: area > minArea * 3 ? 3 : 2
             };
         } catch (err) {
-            console.error('播放三角形高頻合成噪音時發生錯誤:', err);
+            console.error('播放三角形高音和弦時發生錯誤:', err);
             return null;
         }
     }
     
-    // 播放增強的高頻噪音輔助方法
-    _playEnhancedNoiseWithPan(type, duration, volume, pan = 0, frequency = 4000) {
+    // 輔助方法: 播放增強的高音
+    _playEnhancedTone(waveType, frequency, duration, volume, pan = 0) {
         try {
-            // 創建增強噪音
-            const noiseResult = this._createEnhancedNoise(type, duration, volume, frequency);
+            // 創建振盪器
+            const oscillator = this.audioContext.createOscillator();
+            oscillator.type = waveType; // sine, triangle
+            oscillator.frequency.value = frequency;
             
-            // 高通濾波器
+            // 創建增益節點
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0; // 初始音量為 0，避免爆音
+            
+            // 添加一個高通濾波器讓聲音更乾淨
             const highpassFilter = this.audioContext.createBiquadFilter();
             highpassFilter.type = 'highpass';
-            highpassFilter.frequency.value = frequency;
-            highpassFilter.Q.value = 1.5;
+            highpassFilter.frequency.value = frequency * 0.7; // 截止頻率
             
-            // 連接噪音到高通濾波器
-            noiseResult.gainNode.connect(highpassFilter);
+            // 添加一個高頻增強濾波器
+            const highshelfFilter = this.audioContext.createBiquadFilter();
+            highshelfFilter.type = 'highshelf';
+            highshelfFilter.frequency.value = frequency * 0.8;
+            highshelfFilter.gain.value = 5; // 高頻增益
             
-            if (Math.abs(pan) > 0.05) {
-                // 創建聲相節點
-                const panner = this.audioContext.createStereoPanner();
-                panner.pan.value = pan;
-                
-                // 連接節點：高通濾波器 -> 聲相 -> 主增益
-                highpassFilter.connect(panner);
-                panner.connect(this.masterGainNode);
-            } else {
-                // 直接連接主增益節點
-                highpassFilter.connect(this.masterGainNode);
-            }
+            // 創建聲相節點
+            const panner = this.audioContext.createStereoPanner();
+            panner.pan.value = pan;
+            
+            // 連接音訊處理鏈
+            oscillator.connect(gainNode);
+            gainNode.connect(highpassFilter);
+            highpassFilter.connect(highshelfFilter);
+            highshelfFilter.connect(panner);
+            panner.connect(this.masterGainNode);
+            
+            // 設置柔和的淡入淡出效果
+            const currentTime = this.audioContext.currentTime;
+            const fadeInTime = 0.04; // 較柔和的淡入
+            const fadeOutTime = 0.25; // 較長的淡出
+            
+            // 使用指數淡入淡出，聽起來更自然
+            gainNode.gain.setValueAtTime(0.0001, currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(volume, currentTime + fadeInTime);
+            
+            // 持續音量階段
+            gainNode.gain.setValueAtTime(volume, currentTime + duration - fadeOutTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, currentTime + duration);
+            
+            // 啟動振盪器並設置停止時間
+            oscillator.start(currentTime);
+            oscillator.stop(currentTime + duration);
             
             return {
-                type: type,
+                type: waveType,
                 frequency: frequency,
                 duration: duration,
                 volume: volume,
                 pan: pan,
+                oscillator: oscillator,
+                gainNode: gainNode
             };
         } catch (err) {
-            console.error('播放增強的高頻噪音時發生錯誤:', err);
+            console.error('播放增強高音時發生錯誤:', err);
             return null;
         }
     }
