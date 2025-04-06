@@ -487,175 +487,292 @@ class AudioSynthesizer {
         this.masterGainNode.gain.value = Math.max(0, Math.min(1, value));
     }
 
-    // 產生三角形聲音
+    // 根據三角形數據產生噪音 (取代之前的三角形聲音方法)
     playTriangleSound(triangleData) {
-        this.resume();
-        
-        const { area, alpha, baseColor } = triangleData;
-        
-        // 使用三角形面積來決定頻率 (越大面積頻率越低)
-        // 映射面積到 200-800 赫茲範圍
-        // 注意：不再直接引用 CONFIG，而是使用傳入的參數或預設值
-        const minArea = triangleData.minArea || 1000;
-        const maxArea = minArea * 20;
-        const normalizedArea = Math.min(Math.max(area, minArea), maxArea);
-        const frequency = 800 - (normalizedArea - minArea) / (maxArea - minArea) * 600;
-        
-        // 使用顏色值調整音色 (較亮的三角形有更多的泛音)
-        const waveTypes = ['sine', 'triangle', 'square', 'sawtooth'];
-        const colorNormalized = baseColor / 255;
-        const waveType = waveTypes[Math.floor(colorNormalized * waveTypes.length)];
-        
-        // 使用alpha值調整音量
-        const volume = Math.min(alpha * 3, 0.5);
-        
-        // 短促的持續時間
-        const duration = 0.1 + (normalizedArea / maxArea) * 0.3; // 0.1 到 0.4 秒
-        
-        // 隨機調整細微的頻率變化，讓每個三角形的聲音稍有不同
-        const frequencyVariation = frequency * (0.98 + Math.random() * 0.04);
-        
-        console.log(`播放三角形聲音: 頻率=${frequencyVariation.toFixed(1)}Hz, 波形=${waveType}, 持續時間=${duration.toFixed(2)}秒`);
-        
-        return this.playTone(frequencyVariation, waveType, duration, volume);
-    }
-    
-    // 按照三角形參數產生和弦聲音
-    playTriangleChord(triangleData) {
-        // 添加防護機制，確保音頻上下文已準備好
-        if (!this.initialized || !this.audioContext || this.audioContext.state !== 'running') {
-            console.log('音頻上下文未準備好，跳過三角形和弦播放');
-            return null;
+        // 確保上下文初始化
+        if (!this.initialized) {
+            console.warn('播放三角形噪音前需要初始化音訊上下文');
+            if (!this.forceInit()) {
+                console.error('無法初始化音訊上下文，無法播放三角形噪音');
+                return null;
+            }
         }
         
         try {
-            this.resume();
+            const { area, alpha, baseColor, p1, p2, p3 } = triangleData;
             
-            // 避免 triangleData 為 undefined 或 null
-            if (!triangleData || !triangleData.area) {
-                console.warn('無效的三角形數據，跳過和弦播放');
+            // 確保至少有基本資料
+            if (!area) {
+                console.warn('三角形數據缺少面積訊息');
                 return null;
             }
             
-            const { area, p1, p2, p3 } = triangleData;
-            
-            // 計算三角形的中心點
-            const centerX = (p1.x + p2.x + p3.x) / 3;
-            const centerY = (p1.y + p2.y + p3.y) / 3;
-            
-            // 使用位置和面積來決定三個音符
-            // 映射 X 座標到音符 (C, D, E, F, G, A, B)
-            const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-            const normalizedX = centerX / window.innerWidth;
-            const rootNote = notes[Math.floor(normalizedX * notes.length)];
-            
-            // 使用 Y 座標決定八度
-            const normalizedY = centerY / window.innerHeight;
-            const octave = Math.floor(3 + normalizedY * 3); // 從第 3 到第 5 八度
-            
-            // 使用面積決定和弦類型 (大三和弦或小三和弦)
+            // 使用面積決定噪音類型
+            // 較小面積：白噪音 / 中等面積：粉紅噪音 / 較大面積：棕噪音
             const minArea = triangleData.minArea || 1000;
-            const isMinorChord = (area - minArea) % 2 === 0;
+            const maxArea = minArea * 20;
+            const normalizedArea = Math.min(Math.max(area, minArea), maxArea);
+            const areaRatio = (normalizedArea - minArea) / (maxArea - minArea);
             
-            // 和弦音符 - 預先檢查音符的有效性
-            const validRootNote = this._isValidNote(rootNote) ? rootNote : 'C';
-            const thirdNote = this._getThirdNote(validRootNote, isMinorChord);
-            const fifthNote = this._getFifthNote(validRootNote);
-            
-            const chordNotes = [
-                { note: validRootNote, octave: octave, duration: 1 },
-                { note: thirdNote, octave: octave, duration: 1 },
-                { note: fifthNote, octave: octave, duration: 1 }
-            ];
-            
-            // 決定和弦的音量和音色
-            const volume = Math.min(0.25, area / (minArea * 10) * 0.3);
-            const waveType = area > minArea * 5 ? 'triangle' : 'sine';
-            
-            console.log(`播放三角形和弦: 根音=${validRootNote}${isMinorChord ? 'm' : ''}, 八度=${octave}, 音色=${waveType}`);
-            
-            // 使用 Promise 來確保之前的音符處理完成再播放下一個
-            let delayMs = 0;
-            const playPromises = [];
-            
-            // 限制每個和弦最多播放 2 個音符，減少系統負擔
-            const maxNotes = 2;
-            const limitedChordNotes = chordNotes.slice(0, maxNotes);
-            
-            for (let index = 0; index < limitedChordNotes.length; index++) {
-                const noteInfo = limitedChordNotes[index];
-                
-                const playPromise = new Promise((resolve) => {
-                    setTimeout(() => {
-                        try {
-                            // 避免連續相同音符的問題，使用安全的 playNote 調用
-                            const result = this.playNote(
-                                noteInfo.note,
-                                noteInfo.octave,
-                                0.2,  // 較短的持續時間
-                                waveType,
-                                volume * (0.8 - index * 0.1)  // 讓和弦中的後續音符漸弱
-                            );
-                            
-                            // 記錄結果用於除錯
-                            if (!result) {
-                                console.warn(`音符 ${noteInfo.note} 播放失敗`);
-                            }
-                            resolve(result);
-                        } catch (err) {
-                            console.error(`播放音符 ${noteInfo.note} 時發生錯誤:`, err);
-                            resolve(null);
-                        }
-                    }, delayMs);
-                    
-                    delayMs += 60;  // 每個音符間隔 60ms
-                });
-                
-                playPromises.push(playPromise);
+            let noiseType;
+            if (areaRatio < 0.33) {
+                noiseType = 'white';
+            } else if (areaRatio < 0.66) {
+                noiseType = 'pink';
+            } else {
+                noiseType = 'brown';
             }
             
-            return {
-                chord: limitedChordNotes,
-                rootNote: validRootNote,
-                isMinor: isMinorChord,
-                promises: playPromises
-            };
+            // 使用透明度調整音量
+            const volume = Math.min(alpha * 3, 0.4);
+            
+            // 使用顏色調整持續時間 (越亮的顏色持續時間越短)
+            const colorNormalized = baseColor / 255; // 0-1之間
+            const duration = 0.2 + (1 - colorNormalized) * 0.8; // 0.2-1秒之間
+            
+            // 如果有座標信息，使用它們進一步處理噪音的特性
+            if (p1 && p2 && p3) {
+                // 計算三角形的中心點
+                const centerX = (p1.x + p2.x + p3.x) / 3;
+                const centerY = (p1.y + p2.y + p3.y) / 3;
+                
+                // 使用中心點位置調整聲音的立體聲效果
+                const panValue = (centerX / window.innerWidth) * 2 - 1; // -1到1之間
+                
+                // 創建立體聲聲相節點
+                const panner = this.audioContext.createStereoPanner();
+                panner.pan.value = panValue;
+                
+                // 播放噪音並使用立體聲聲相
+                const noiseResult = this._createNoise(noiseType, duration, volume);
+                noiseResult.source.connect(panner);
+                panner.connect(this.masterGainNode);
+                
+                console.log(`播放三角形噪音: 類型=${noiseType}, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒, 聲相=${panValue.toFixed(2)}`);
+                
+                // 將相關信息返回
+                return {
+                    type: noiseType,
+                    duration: duration,
+                    volume: volume,
+                    pan: panValue,
+                    source: noiseResult.source,
+                    gainNode: noiseResult.gainNode
+                };
+            } else {
+                // 簡單版本 - 直接播放噪音
+                console.log(`播放三角形噪音: 類型=${noiseType}, 音量=${volume.toFixed(2)}, 時長=${duration.toFixed(2)}秒`);
+                return this.playNoise(duration, volume, noiseType);
+            }
         } catch (err) {
-            console.error('播放三角形和弦時發生錯誤:', err);
+            console.error('播放三角形噪音時發生錯誤:', err);
             return null;
         }
     }
     
-    // 根據根音取得大三度或小三度
-    _getThirdNote(rootNote, isMinor) {
-        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const rootIndex = notes.indexOf(rootNote);
-        if (rootIndex === -1) return 'E'; // 預設值
+    // 內部方法 - 創建噪音但不直接播放 (用於高級控制)
+    _createNoise(type = 'white', duration = 1.0, volume = 0.5) {
+        // 創建緩衝區
+        const bufferSize = this.audioContext.sampleRate * duration;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
         
-        // 大三度：+4半音，小三度：+3半音
-        const interval = isMinor ? 3 : 4;
-        const thirdIndex = (rootIndex + interval) % 12;
-        return notes[thirdIndex];
+        // 生成噪音數據
+        switch (type) {
+            case 'white':
+                // 白噪音：所有頻率的強度相等
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                break;
+            case 'pink':
+                // 粉紅噪音：頻率越高強度越低
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                    data[i] *= 0.11; // 調整音量
+                    b6 = white * 0.115926;
+                }
+                break;
+            case 'brown':
+                // 棕噪音：低頻強度更高
+                let lastOut = 0.0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    data[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = data[i];
+                    data[i] *= 3.5; // 調整音量
+                }
+                break;
+        }
+        
+        // 創建緩衝源
+        const noiseSource = this.audioContext.createBufferSource();
+        noiseSource.buffer = buffer;
+        
+        // 創建增益節點
+        const gainNode = this.audioContext.createGain();
+        gainNode.gain.value = volume;
+        
+        // 設置淡入淡出效果
+        const currentTime = this.audioContext.currentTime;
+        const fadeTime = 0.01;
+        
+        gainNode.gain.setValueAtTime(0, currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, currentTime + fadeTime);
+        gainNode.gain.setValueAtTime(volume, currentTime + duration - fadeTime);
+        gainNode.gain.linearRampToValueAtTime(0, currentTime + duration);
+        
+        // 連接增益節點
+        noiseSource.connect(gainNode);
+        
+        // 啟動噪音
+        noiseSource.start();
+        noiseSource.stop(currentTime + duration);
+        
+        return {
+            source: noiseSource,
+            gainNode: gainNode,
+            duration: duration
+        };
     }
     
-    // 取得純五度
-    _getFifthNote(rootNote) {
-        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const rootIndex = notes.indexOf(rootNote);
-        if (rootIndex === -1) return 'G'; // 預設值
+    // 取代原來的三角形和弦方法，改為使用多層噪音
+    playTriangleChord(triangleData) {
+        // 確保上下文初始化
+        if (!this.initialized) {
+            console.warn('播放三角形合成噪音前需要初始化音訊上下文');
+            if (!this.forceInit()) {
+                console.error('無法初始化音訊上下文，無法播放三角形合成噪音');
+                return null;
+            }
+        }
         
-        // 純五度：+7半音
-        const fifthIndex = (rootIndex + 7) % 12;
-        return notes[fifthIndex];
+        try {
+            const { area, alpha, baseColor, p1, p2, p3 } = triangleData;
+            
+            // 確保至少有基本資料
+            if (!area) {
+                console.warn('三角形數據缺少面積訊息');
+                return null;
+            }
+            
+            // 使用三角形的幾何特徵來創建分層噪音效果
+            const minArea = triangleData.minArea || 1000;
+            
+            // 根據面積計算三層不同的噪音
+            const layers = [];
+            
+            // 第一層 - 基礎噪音 (根據面積決定類型)
+            const areaRatio = Math.min(area / (minArea * 10), 1);
+            let baseNoiseType;
+            
+            if (areaRatio < 0.33) {
+                baseNoiseType = 'white';
+            } else if (areaRatio < 0.66) {
+                baseNoiseType = 'pink';
+            } else {
+                baseNoiseType = 'brown';
+            }
+            
+            // 音量和持續時間
+            const baseVolume = Math.min(alpha * 2, 0.3);
+            const baseDuration = 0.3 + areaRatio * 0.7; // 0.3-1秒
+            
+            // 如果有位置信息，使用立體聲效果
+            let panValue = 0;
+            if (p1 && p2 && p3) {
+                const centerX = (p1.x + p2.x + p3.x) / 3;
+                panValue = (centerX / window.innerWidth) * 2 - 1; // -1到1之間
+            }
+            
+            // 創建三層噪音效果
+            const noiseResults = [];
+            
+            // 基礎層 - 主要噪音
+            noiseResults.push(this._playNoiseWithPan(baseNoiseType, baseDuration, baseVolume, panValue));
+            
+            // 第二層 - 較短更高頻的噪音
+            if (area > minArea * 2) {
+                // 使用白噪音製造高頻聲音
+                const layer2Volume = baseVolume * 0.6;
+                const layer2Duration = baseDuration * 0.5;
+                
+                // 延遲一點播放
+                setTimeout(() => {
+                    this._playNoiseWithPan('white', layer2Duration, layer2Volume, panValue * 0.7);
+                }, 100);
+                
+                noiseResults.push({ delayed: true, duration: layer2Duration });
+            }
+            
+            // 第三層 - 只有大三角形才有的低頻噪音
+            if (area > minArea * 5) {
+                // 使用棕噪音製造低頻聲音
+                const layer3Volume = baseVolume * 0.4;
+                const layer3Duration = baseDuration * 0.7;
+                
+                // 再延遲一點播放
+                setTimeout(() => {
+                    this._playNoiseWithPan('brown', layer3Duration, layer3Volume, panValue * -0.5);
+                }, 200);
+                
+                noiseResults.push({ delayed: true, duration: layer3Duration });
+            }
+            
+            console.log(`播放三角形合成噪音: 基礎類型=${baseNoiseType}, 音量=${baseVolume.toFixed(2)}, 層數=${noiseResults.length}`);
+            
+            return {
+                type: 'layered_noise',
+                layers: noiseResults.length,
+                baseType: baseNoiseType,
+                duration: baseDuration,
+                volume: baseVolume
+            };
+        } catch (err) {
+            console.error('播放三角形合成噪音時發生錯誤:', err);
+            return null;
+        }
     }
-
-    // 檢查音符是否有效
-    _isValidNote(note) {
-        const validNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 
-                           'Db', 'Eb', 'Gb', 'Ab', 'Bb'];
-        return validNotes.includes(note);
+    
+    // 帶有立體聲的噪音播放輔助方法
+    _playNoiseWithPan(type, duration, volume, pan = 0) {
+        try {
+            // 創建噪音
+            const noiseResult = this._createNoise(type, duration, volume);
+            
+            if (Math.abs(pan) > 0.05) {
+                // 創建聲相節點
+                const panner = this.audioContext.createStereoPanner();
+                panner.pan.value = pan;
+                
+                // 連接節點
+                noiseResult.gainNode.connect(panner);
+                panner.connect(this.masterGainNode);
+            } else {
+                // 直接連接主增益節點
+                noiseResult.gainNode.connect(this.masterGainNode);
+            }
+            
+            return {
+                type: type,
+                duration: duration,
+                volume: volume,
+                pan: pan,
+            };
+        } catch (err) {
+            console.error('播放立體聲噪音時發生錯誤:', err);
+            return null;
+        }
     }
-
+    
     // 增加一個獲取狀態的方法
     getStatus() {
         return {
