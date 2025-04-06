@@ -15,10 +15,58 @@
                 display: none !important;
             }
         }
+        
+        /* 音效控制按鈕 */
+        #sound-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 50px;  /* 增大一點 */
+            height: 50px; /* 增大一點 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        #sound-toggle:hover {
+            background-color: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        #sound-toggle svg {
+            width: 30px;  /* 增大一點 */
+            height: 30px; /* 增大一點 */
+        }
+        
+        .sound-on .sound-off-icon {
+            display: none;
+        }
+        
+        .sound-off .sound-on-icon {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="background-canvas"></canvas>
+    
+    <!-- 音效控制按鈕 (簡化HTML結構) -->
+    <button id="sound-toggle" class="sound-off" title="開關聲音效果">
+        <svg class="sound-off-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+        <svg class="sound-on-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        </svg>
+    </button>
     
     <header>
         <nav>
@@ -49,7 +97,7 @@
                             江振維取得博士學位於日本九州大學藝術工學府設計策略專攻，曾任九州大學專任學術研究員。目前任教於國立臺北商業大學創意科技與產品設計系專任助理教授，同時開設互動影像程式設計NFT創作應用課程於國立清華大學藝術學院學士班，擔任台灣科技藝術學會秘書長、理事、台灣科技藝術教育協會常務理事等職務。主要專注在人機互動設計以及新媒體藝術創作、使用者研究、區塊鏈應用等。經常舉辦互動設計、藝術相關工作坊，相關展覽經歷主要於日本、韓國、北京、捷克、西班牙、奧地利、加拿大、香港、台灣等地，創作作品亦曾參展於馬德里現代科技藝術節、SIGGRAPH ASIA Art Gallery、東京設計師週等並在國立台灣美術館、國立台灣科學教育館、桃園科技藝術節等知名美術展場展出。曾帶領學生獲得K.T.科技藝術獎互動藝術類金獎、銅獎、亞洲數位媒體藝術等獎項。近年除新媒體藝術創作更致力於區塊鏈相關應用如NFT等活動。專長於應用電子材料與電腦科技進行互動裝置設計與互動藝術創作，並於互動科技應用教學上不遺於力。江振維創作與教學核心主要以「好玩」為其理念，他認為好玩的事物最容易引起人們赤子之心，並融入互動作品之互動行為中加強觀眾感受。近期主要創作題材以都市中生物存在方式之相關議題為主，都市主要為因應人類存在而產生並且逐漸擴張且擠壓到非人類之生物存在，探討生物如何在人造環境中生存並與人類共生為其近期創作中所探討核心。
                         </p>
                         <p style="text-align: left; text-align-last: justify;">
-                            Chiang Chen-Wei obtained his doctoral degree in Design Strategy from the Graduate School of Art and Design at Kyushu University in Japan. He has served as a full-time academic researcher at Kyushu University. Currently, he is an Assistant Professor in the Department of Creative Technology and Product Design at National Taipei University of Business, and he also teaches an interactive video programming and NFT creation course in the Bachelor’s program at the College of Arts at National Tsing Hua University. He holds positions such as Secretary-General and Board Member of the Taiwan Association of Technological Arts, and Executive Director of the Taiwan Association of Technological Arts Education. His main focus is on human-computer interaction design, new media art creation, user research, and blockchain applications. He frequently organizes workshops related to interactive design and art, and his exhibitions have taken place in Japan, Korea, Beijing, Czech Republic, Spain, Austria, Canada, Hong Kong, and Taiwan. His artworks have been exhibited at events such as the Madrid Contemporary Technology Art Festival, SIGGRAPH ASIA Art Gallery, and Tokyo Designers Week, as well as prestigious art venues including the National Taiwan Museum of Fine Arts, National Taiwan Science Education Center, and Taoyuan Arts and Technology Festival. He has led students to win awards such as the K.T. Techno Art Award in Interactive Art category, Gold Award, and Asia Digital Art Award. In recent years, in addition to new media art creation, he has devoted himself to blockchain-related applications such as NFT. He specializes in interactive device design and interactive art creation using electronic materials and computer technology, and is dedicated to teaching the application of interactive technology. Chiang Chen-Wei’s core philosophy in his creations and teaching is centered around “fun.” He believes that things that are fun are most likely to evoke people’s childlike innocence and enhance audience experience through interactive behavior in interactive artworks. Recently, his main creative themes revolve around the ways of existence of living organisms in urban environments. Urban environments are primarily shaped by human existence, gradually expanding and encroaching on the existence of non-human organisms. His recent works explore how organisms can survive and coexist with humans in artificial environments.
+                            Chiang Chen-Wei obtained his doctoral degree in Design Strategy from the Graduate School of Art and Design at Kyushu University in Japan. He has served as a full-time academic researcher at Kyushu University. Currently, he is an Assistant Professor in the Department of Creative Technology and Product Design at National Taipei University of Business, and he also teaches an interactive video programming and NFT creation course in the Bachelor's program at the College of Arts at National Tsing Hua University. He holds positions such as Secretary-General and Board Member of the Taiwan Association of Technological Arts, and Executive Director of the Taiwan Association of Technological Arts Education. His main focus is on human-computer interaction design, new media art creation, user research, and blockchain applications. He frequently organizes workshops related to interactive design and art, and his exhibitions have taken place in Japan, Korea, Beijing, Czech Republic, Spain, Austria, Canada, Hong Kong, and Taiwan. His artworks have been exhibited at events such as the Madrid Contemporary Technology Art Festival, SIGGRAPH ASIA Art Gallery, and Tokyo Designers Week, as well as prestigious art venues including the National Taiwan Museum of Fine Arts, National Taiwan Science Education Center, and Taoyuan Arts and Technology Festival. He has led students to win awards such as the K.T. Techno Art Award in Interactive Art category, Gold Award, and Asia Digital Art Award. In recent years, in addition to new media art creation, he has devoted himself to blockchain-related applications such as NFT. He specializes in interactive device design and interactive art creation using electronic materials and computer technology, and is dedicated to teaching the application of interactive technology. Chiang Chen-Wei's core philosophy in his creations and teaching is centered around "fun." He believes that things that are fun are most likely to evoke people's childlike innocence and enhance audience experience through interactive behavior in interactive artworks. Recently, his main creative themes revolve around the ways of existence of living organisms in urban environments. Urban environments are primarily shaped by human existence, gradually expanding and encroaching on the existence of non-human organisms. His recent works explore how organisms can survive and coexist with humans in artificial environments.
                         </p>
                 </div>
             </div>
@@ -165,7 +213,70 @@
         </div>
     </footer>
 
-    <!-- 載入主程式 (已移除設定檔) -->
+    <!-- 音效控制和載入腳本 -->
+    <script>
+    // 全局聲音狀態
+    window.soundEnabled = false;
+    
+    // 確保DOM載入完畢
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM載入完成');
+        
+        // 初始化聲音按鈕
+        initSoundButton();
+    });
+    
+    // 初始化聲音按鈕
+    function initSoundButton() {
+        const soundToggle = document.getElementById('sound-toggle');
+        if (!soundToggle) {
+            console.error('找不到聲音按鈕元素!');
+            return;
+        }
+        
+        console.log('初始化聲音按鈕');
+        
+        // 檢查本地存儲
+        if (localStorage.getItem('soundEnabled') === 'true') {
+            soundToggle.classList.remove('sound-off');
+            soundToggle.classList.add('sound-on');
+            window.soundEnabled = true;
+            console.log('從本地存儲載入聲音狀態: 開啟');
+        } else {
+            console.log('從本地存儲載入聲音狀態: 關閉');
+        }
+        
+        // 添加點擊事件
+        soundToggle.addEventListener('click', toggleSound);
+    }
+    
+    // 切換聲音開關
+    function toggleSound() {
+        console.log('點擊聲音按鈕');
+        const soundToggle = document.getElementById('sound-toggle');
+        
+        if (soundToggle.classList.contains('sound-off')) {
+            // 開啟聲音
+            soundToggle.classList.remove('sound-off');
+            soundToggle.classList.add('sound-on');
+            window.soundEnabled = true;
+            localStorage.setItem('soundEnabled', 'true');
+            console.log('聲音已開啟');
+        } else {
+            // 關閉聲音
+            soundToggle.classList.remove('sound-on');
+            soundToggle.classList.add('sound-off');
+            window.soundEnabled = false;
+            localStorage.setItem('soundEnabled', 'false');
+            console.log('聲音已關閉');
+        }
+    }
+    </script>
+
+    <!-- 載入音訊模組 (使用常規腳本標籤而非ES6模組) -->
+    <script src="js/audio.js"></script>
+    
+    <!-- 載入主程式 -->
     <script src="js/main.js"></script>
 </body>
 </html>
