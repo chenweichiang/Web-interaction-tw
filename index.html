@@ -58,8 +58,8 @@
 <body>
     <canvas id="background-canvas"></canvas>
     
-    <!-- 音效控制按鈕 (簡化HTML結構) -->
-    <button id="sound-toggle" class="sound-off" title="開關聲音效果">
+    <!-- 音效控制按鈕 (已禁用功能，只保留圖示) -->
+    <button id="sound-toggle" class="sound-off" title="聲音功能已禁用" disabled style="opacity: 0.5; cursor: not-allowed;">
         <svg class="sound-off-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
         </svg>
@@ -215,61 +215,50 @@
 
     <!-- 音效控制和載入腳本 -->
     <script>
-    // 全局聲音狀態
+    // 全局聲音狀態 - 永遠設為關閉
     window.soundEnabled = false;
     
     // 確保DOM載入完畢
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM載入完成');
         
-        // 初始化聲音按鈕
-        initSoundButton();
+        // 強制設定本地存儲為關閉
+        localStorage.setItem('soundEnabled', 'false');
+        
+        // 禁用聲音按鈕功能
+        disableSoundButton();
     });
     
-    // 初始化聲音按鈕
-    function initSoundButton() {
+    // 禁用聲音按鈕功能
+    function disableSoundButton() {
         const soundToggle = document.getElementById('sound-toggle');
         if (!soundToggle) {
             console.error('找不到聲音按鈕元素!');
             return;
         }
         
-        console.log('初始化聲音按鈕');
+        console.log('禁用聲音按鈕功能');
         
-        // 檢查本地存儲
-        if (localStorage.getItem('soundEnabled') === 'true') {
-            soundToggle.classList.remove('sound-off');
-            soundToggle.classList.add('sound-on');
-            window.soundEnabled = true;
-            console.log('從本地存儲載入聲音狀態: 開啟');
-        } else {
-            console.log('從本地存儲載入聲音狀態: 關閉');
-        }
+        // 確保顯示為關閉狀態
+        soundToggle.classList.remove('sound-on');
+        soundToggle.classList.add('sound-off');
         
-        // 添加點擊事件
-        soundToggle.addEventListener('click', toggleSound);
+        // 移除原有的點擊事件處理器
+        soundToggle.removeEventListener('click', toggleSound);
+        
+        // 添加一個提示用的點擊事件處理器
+        soundToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('聲音功能已被禁用');
+        });
     }
     
-    // 切換聲音開關
+    // 保留但永遠返回false的切換聲音函數
     function toggleSound() {
-        console.log('點擊聲音按鈕');
-        const soundToggle = document.getElementById('sound-toggle');
-        
-        if (soundToggle.classList.contains('sound-off')) {
-            // 開啟聲音
-            soundToggle.classList.remove('sound-off');
-            soundToggle.classList.add('sound-on');
-            window.soundEnabled = true;
-            localStorage.setItem('soundEnabled', 'true');
-            console.log('聲音已開啟');
-        } else {
-            // 關閉聲音
-            soundToggle.classList.remove('sound-on');
-            soundToggle.classList.add('sound-off');
-            window.soundEnabled = false;
-            localStorage.setItem('soundEnabled', 'false');
-            console.log('聲音已關閉');
-        }
+        console.log('聲音功能已被禁用');
+        window.soundEnabled = false;
+        localStorage.setItem('soundEnabled', 'false');
+        return false;
     }
     </script>
 
