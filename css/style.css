@@ -88,12 +88,47 @@ nav {
     font-size: 1.5rem;
     font-weight: 700;
     color: #333;
+    white-space: nowrap; /* 防止文字換行 */
+}
+
+/* 手機版導航欄標誌文字大小調整 */
+@media only screen and (max-width: 768px) {
+    .logo {
+        font-size: 1.05rem; /* 比原本小約 30% (1.5rem * 0.7 = 1.05rem) */
+    }
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* 將元素推到右側 */
 }
 
 .nav-links {
     display: flex;
     list-style: none;
     align-items: center; /* 確保所有項目垂直居中對齊 */
+    margin-right: 0; /* 移除右側邊距 */
+}
+
+/* 社交媒體圖標樣式 */
+.nav-social-icons {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 圖標之間的間距 */
+    margin-left: 25px; /* 與左側導航連結的距離 */
+}
+
+.social-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    display: block; /* 確保圖標總是顯示 */
+}
+
+.social-icon:hover {
+    transform: scale(1.1);
 }
 
 .nav-links li {
@@ -351,25 +386,7 @@ section h2:after {
     opacity: 0.8;
 }
 
-/* 聯絡方式 */
-.contact {
-    background-color: rgba(250, 250, 250, 0.8); /* 確保統一80%不透明度 */
-    padding: 5rem 0;
-    position: relative;
-    z-index: 1;
-}
-
-.contact-info {
-    text-align: center;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.contact-info p {
-    margin-bottom: 1rem;
-    color: #333;
-}
-
+/* 已移除 contact 相關樣式 */
 .social-links {
     display: flex;
     justify-content: center;
@@ -400,10 +417,74 @@ footer {
     color: #333;
 }
 
+/* 頁尾社交媒體圖標樣式 */
+.footer-social-icons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+.footer-social-icons .social-icon {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.3s ease;
+}
+
+.footer-social-icons .social-icon:hover {
+    transform: scale(1.2);
+}
+
+/* 漢堡選單樣式 */
+.hamburger-menu {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1010;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 24px;
+}
+
+.hamburger-line {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #333;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
 /* 響應式設計 */
 @media (max-width: 768px) {
+    .nav-right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    
+    /* 在手機版隱藏文字導航連結 */
     .nav-links {
         display: none;
+    }
+    
+    /* 在手機版調整社交媒體圖標 */
+    .nav-social-icons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        width: auto;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .social-icon {
+        width: 28px; /* 稍微大一點，便於手機上點擊 */
+        height: 28px;
     }
     
     .hero-content h1 {
