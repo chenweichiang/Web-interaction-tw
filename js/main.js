@@ -31,7 +31,7 @@ const CONFIG = {
     TRIANGLE_COLOR_MAX: 200,          // 三角形灰階顏色最大值 (0-255)
     
     // 效能優化參數
-    THROTTLE_SCROLL: 16,             // 滾動事件節流時間 (毫秒)
+    THROTTLE_SCROLL: 16,             // 滾动事件节流时间 (毫秒)
     SPATIAL_HASH_CELL_SIZE: 100,     // 空間哈希單元格大小 (優化連線計算)
 };
 
@@ -154,7 +154,7 @@ class BackgroundLines {
             this.resizeCanvas();
         }, 100));
         
-        // 使用節流函數處理滾動事件，避免過度渲染
+        // 使用節流函數處理滾动事件，避免過度渲染
         window.addEventListener('scroll', throttle(() => {
             this.scrollY = window.scrollY;
             this.drawLines();
@@ -1123,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('設置導航時發生錯誤:', navError);
     }
     
-    // 使用節流函數處理滾動事件
+    // 使用節流函數處理滾动事件
     try {
         const throttledScroll = throttle(function() {
             const header = document.querySelector('header');
@@ -1140,6 +1140,66 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('滾動效果已設置');
     } catch (scrollError) {
         console.error('設置滾動效果時發生錯誤:', scrollError);
+    }
+});
+
+// 音效控制模組
+document.addEventListener('DOMContentLoaded', function() {
+    // 獲取音效控制按鈕
+    const soundToggle = document.getElementById('sound-toggle');
+    
+    // 音效狀態變數
+    let soundEnabled = false;
+    let zizSound = null;
+    
+    // 檢查按鈕是否存在
+    if (soundToggle) {
+        // 設置點擊事件
+        soundToggle.addEventListener('click', function() {
+            if (soundEnabled) {
+                // 關閉音效
+                soundToggle.classList.remove('sound-on');
+                soundToggle.classList.add('sound-off');
+                soundEnabled = false;
+                
+                // 如果已經有音效實例，停止它
+                if (zizSound) {
+                    zizSound.stop();
+                    zizSound = null;
+                }
+                
+                console.log('音效已關閉');
+            } else {
+                // 開啟音效
+                soundToggle.classList.remove('sound-off');
+                soundToggle.classList.add('sound-on');
+                soundEnabled = true;
+                
+                // 創建新音效實例
+                try {
+                    // 檢查函數是否存在
+                    if (typeof generateZizzingSound === 'function') {
+                        zizSound = generateZizzingSound();
+                        // 開始播放聲音
+                        zizSound.start();
+                        
+                        // 設定初始音量和強度
+                        zizSound.setVolume(0.4);
+                        zizSound.setIntensity(0.6);
+                        
+                        console.log('音效已開啟');
+                    } else {
+                        console.error('找不到 generateZizzingSound 函數，請確認 audio.js 已正確載入');
+                    }
+                } catch (error) {
+                    console.error('啟動音效時發生錯誤:', error);
+                }
+            }
+        });
+        
+        console.log('聲音控制按鈕已初始化');
+    } else {
+        console.warn('找不到音效控制按鈕 (ID: sound-toggle)');
     }
 });
 
