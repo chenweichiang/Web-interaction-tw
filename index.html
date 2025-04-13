@@ -109,8 +109,8 @@
                     <script>
                       // 使用 Gemini API 生成與研究方向相關的引言
                       document.addEventListener('DOMContentLoaded', function() {
-                        // API 密鑰
-                        const API_KEY = 'AIzaSyCgXta4Qut01EdlGlhTRyNHzOTEPsheZac';
+                        // API 密鑰 (已移除公開版本的API金鑰)
+                        const API_KEY = '';  // 請在本地開發使用時填入自己的API金鑰
                         
                         // 確保第一次顯示一定是中文
                         const isFirstVisit = !localStorage.getItem('hasVisitedBefore');
@@ -147,7 +147,7 @@
                       
                       // 從 Gemini API 獲取引言
                       async function fetchGeminiQuote() {
-                        const API_KEY = 'AIzaSyCgXta4Qut01EdlGlhTRyNHzOTEPsheZac'; // 再次設置 API 密鑰以確保可訪問性
+                        const API_KEY = ''; // API金鑰已從GitHub版本中移除，請在本地開發時添加自己的API金鑰
                         const MODEL = 'gemini-1.5-flash';
                         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
                         
