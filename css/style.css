@@ -131,6 +131,15 @@ nav {
     transform: scale(1.1);
 }
 
+/* 特定放大 Blogspot 圖標 */
+.nav-social-icons a[href*="blogspot.com"] .social-icon {
+    transform: scale(1.375); /* 再放大 10% (原 1.25 * 1.1) */
+}
+
+.nav-social-icons a[href*="blogspot.com"] .social-icon:hover {
+    transform: scale(1.5); /* 懸停時再放大一點 (原 1.35 -> 1.5 approx) */
+}
+
 .nav-links li {
     margin-left: 2rem;
     display: flex; /* 使用彈性盒子佈局 */
