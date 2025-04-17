@@ -1,5 +1,11 @@
 // 網頁背景參數設定區 - 可自由調整
 const CONFIG = {
+    // 響應式設計參數
+    REFERENCE_WIDTH: 1920,           // 參考寬度
+    REFERENCE_HEIGHT: 1080,          // 參考高度
+    MIN_SCALE_FACTOR: 0.5,          // 最小縮放比例
+    MAX_SCALE_FACTOR: 1.5,          // 最大縮放比例
+
     // 背景曲線基本參數
     LINE_COUNT: 100,                  // 曲線數量 (越多視覺越複雜)
     LINE_THICKNESS_MIN: 0.3,         // 最小線條粗細
@@ -25,10 +31,10 @@ const CONFIG = {
     CONNECTION_LAYERS: 13,            // 不同層級的連線數
     
     // 三角形填充相關參數
-    MIN_TRIANGLE_AREA: 4000,         // 最小三角形面積 (過濾太小的三角形)
-    TRIANGLE_ALPHA_MIN: 0.1,         // 三角形透明度最小值
-    TRIANGLE_ALPHA_MAX: 0.5,         // 三角形透明度最大值
-    TRIANGLE_COLOR_MAX: 200,          // 三角形灰階顏色最大值 (0-255)
+    MIN_TRIANGLE_AREA: 3550,         // 最小三角形面積 (過濾太小的三角形)
+    TRIANGLE_ALPHA_MIN: 0.5,         // 三角形透明度最小值
+    TRIANGLE_ALPHA_MAX: 0.9,         // 三角形透明度最大值
+    TRIANGLE_COLOR_MAX: 220,          // 三角形灰階顏色最大值 (0-255)
     
     // 效能優化參數
     THROTTLE_SCROLL: 16,             // 滾动事件节流时间 (毫秒)
@@ -175,18 +181,51 @@ class BackgroundLines {
         this.canvas.style.zIndex = '-1';
         this.canvas.style.pointerEvents = 'none';
         
+        // 獲取視窗實際大小
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
         // 設置 canvas 的實際尺寸，解決高清屏幕問題
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.width = window.innerWidth * dpr;
-        this.canvas.height = window.innerHeight * dpr;
+        this.canvas.width = viewportWidth * dpr;
+        this.canvas.height = viewportHeight * dpr;
         
-        // 縮放上下文以適應 DPR
-        this.ctx.scale(dpr, dpr);
+        // 重設上下文狀態
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
+        // 計算縮放因子
+        const rawScaleFactor = Math.min(
+            viewportWidth / CONFIG.REFERENCE_WIDTH,
+            viewportHeight / CONFIG.REFERENCE_HEIGHT
+        );
+        
+        // 確保縮放因子在合理範圍內
+        const scaleFactor = Math.min(
+            Math.max(rawScaleFactor, CONFIG.MIN_SCALE_FACTOR),
+            CONFIG.MAX_SCALE_FACTOR
+        );
+        
+        // 縮放上下文以適應 DPR 和視窗大小
+        this.ctx.scale(dpr * scaleFactor, dpr * scaleFactor);
+        
+        // 動態調整各種元素的大小
+        this.cubeSize = CONFIG.CUBE_SIZE / scaleFactor;
+        this.cubesPerLine = Math.max(5, Math.floor(CONFIG.CUBES_PER_LINE * scaleFactor));
+        
+        // 根據縮放調整曲線數量
+        this.lineCount = Math.max(
+            Math.floor(CONFIG.LINE_COUNT * scaleFactor),
+            Math.floor(CONFIG.LINE_COUNT * 0.3)
+        );
+        
+        // 調整連線參數
+        this.connectionDistance = Math.floor(CONFIG.CONNECTION_DISTANCE * scaleFactor);
+        this.connectionDistanceSquared = this.connectionDistance * this.connectionDistance;
         
         // 清除快取，因為尺寸改變
         this.cache.controlPoints.clear();
         
-        console.log(`Canvas 尺寸已調整: ${this.canvas.width}x${this.canvas.height}, DPR: ${dpr}`);
+        console.log(`Canvas 已調整: ${this.canvas.width}x${this.canvas.height}, 縮放: ${scaleFactor.toFixed(2)}`);
         
         this.initLines(); // 重新初始化曲線
     }
@@ -513,13 +552,75 @@ class BackgroundLines {
     
     // 使用空間哈希優化立方體連線計算
     drawCubeConnectionsOptimized(cubePositions) {
-        // 如果立方體數量少於 2，無需繪製連線
+        // 如果立方體數量少於 3，無需繪製連線和三角形
         const cubeCount = cubePositions.length;
-        if (cubeCount < 2) return;
+        if (cubeCount < 3) return;
         
-        this.cubes = cubePositions;
-        this.cubeConnections = [];
+        // 先繪製三角形（這樣可以讓線條在三角形上層）
+        this.ctx.globalAlpha = 0.25; // 設置適中的透明度
+        for (let i = 0; i < cubeCount; i++) {
+            const p1 = cubePositions[i];
+            const nearbyIndices = this.getNearbyObjects(p1.x, p1.y);
+            
+            for (let j = 0; j < nearbyIndices.length; j++) {
+                const j_idx = nearbyIndices[j];
+                if (j_idx <= i) continue;
+                const p2 = cubePositions[j_idx];
+                
+                const dx1 = p2.x - p1.x;
+                const dy1 = p2.y - p1.y;
+                const dist1Squared = dx1 * dx1 + dy1 * dy1;
+                
+                if (dist1Squared < this.connectionDistanceSquared) {
+                    for (let k = j + 1; k < nearbyIndices.length; k++) {
+                        const k_idx = nearbyIndices[k];
+                        if (k_idx <= j_idx) continue;
+                        const p3 = cubePositions[k_idx];
+                        
+                        const dx2 = p3.x - p2.x;
+                        const dy2 = p3.y - p2.y;
+                        const dx3 = p3.x - p1.x;
+                        const dy3 = p3.y - p1.y;
+                        
+                        const dist2Squared = dx2 * dx2 + dy2 * dy2;
+                        const dist3Squared = dx3 * dx3 + dy3 * dy3;
+                        
+                        if (dist2Squared < this.connectionDistanceSquared && 
+                            dist3Squared < this.connectionDistanceSquared) {
+                            // 計算並檢查三角形面積
+                            const area = Math.abs((p2.x - p1.x) * (p3.y - p1.y) - 
+                                                (p3.x - p1.x) * (p2.y - p1.y)) / 2;
+                            
+                            if (area > CONFIG.MIN_TRIANGLE_AREA && area < CONFIG.MIN_TRIANGLE_AREA * 4) {
+                                // 繪製三角形
+                                this.ctx.beginPath();
+                                this.ctx.moveTo(p1.x, p1.y);
+                                this.ctx.lineTo(p2.x, p2.y);
+                                this.ctx.lineTo(p3.x, p3.y);
+                                this.ctx.closePath();
+                                
+                                // 使用漸變填充
+                                const gradient = this.ctx.createLinearGradient(
+                                    p1.x, p1.y, 
+                                    (p2.x + p3.x) / 2, 
+                                    (p2.y + p3.y) / 2
+                                );
+                                
+                                gradient.addColorStop(0, 'rgba(0, 0, 0)');
+                                gradient.addColorStop(1, 'rgba(20, 20, 20)');
+                                
+                                this.ctx.fillStyle = gradient;
+                                this.ctx.fill();
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
+        this.ctx.globalAlpha = 1.0; // 重置透明度
+        
+        // 繪製連線
         // 批次繪製連線以提高效能
         const linesToDraw = [];
         
@@ -529,7 +630,6 @@ class BackgroundLines {
             
             // 只檢查鄰近單元格中的立方體，而不是所有立方體
             const nearbyIndices = this.getNearbyObjects(p1.x, p1.y);
-            
             for (let j = 0; j < nearbyIndices.length; j++) {
                 const index = nearbyIndices[j];
                 
@@ -556,13 +656,6 @@ class BackgroundLines {
                         y2: p2.y,
                         opacity: opacity,
                         lineWidth: Math.max(0.1, (1 - distance / this.connectionDistance) * 1.5)
-                    });
-                    
-                    // 保存連線信息用於三角形
-                    this.cubeConnections.push({
-                        p1: i,
-                        p2: index,
-                        distance: distance
                     });
                 }
             }
@@ -616,9 +709,6 @@ class BackgroundLines {
                 }
             }
         }
-        
-        // 使用優化版本的三角形計算
-        this.findAndFillTrianglesOptimized(this.cubes, this.cubeConnections);
     }
     
     // 優化的三角形查找和填充
