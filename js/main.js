@@ -90,6 +90,24 @@ const CONFIG = {
     console.log('配置檢查完成，所有必要參數都已設置');
 })();
 
+// Polyfills and environment checks for broader browser support
+window.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function(cb) { return setTimeout(cb, 1000/60); };
+window.cancelAnimationFrame = window.cancelAnimationFrame || window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame || function(id) { clearTimeout(id); };
+
+function canRunBackgroundFeatures() {
+    // Basic feature detection for Canvas animation
+    try {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+        if (!('getContext' in document.createElement('canvas'))) return false;
+        if (typeof Map === 'undefined') return false; // used for caching control points
+        if (typeof window.performance === 'undefined') return false;
+        if (typeof window.requestAnimationFrame === 'undefined') return false;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // 通用節流函數 - 限制函數執行頻率
 function throttle(func, delay) {
     let lastCall = 0;
@@ -152,7 +170,10 @@ class BackgroundLines {
             fps: 0
         };
         
-        this.resizeCanvas();
+    this._paused = false; // visibility pause flag
+    this._reducedMotion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || false;
+
+    this.resizeCanvas();
         this.initLines();
         
         // 使用節流函數處理視窗大小變化事件
@@ -166,8 +187,8 @@ class BackgroundLines {
             this.drawLines();
         }, CONFIG.THROTTLE_SCROLL));
         
-        // 開始動畫
-        this.animate();
+        // 開始動畫（如果使用者沒有偏好減少動畫）
+        if (!this._reducedMotion) this.animate();
     }
     
     // 調整 canvas 大小
@@ -1149,8 +1170,10 @@ class BackgroundLines {
                 console.log(`背景動畫運行中: FPS=${this.cache.fps}`);
             }
             
-            // 請求下一幀
-            requestAnimationFrame(() => this.animate());
+            // 請求下一幀（在頁面可見且使用者未設定減少動畫偏好時）
+            if (!this._paused && !this._reducedMotion) {
+                this._animFrameId = requestAnimationFrame(() => this.animate());
+            }
         } catch (error) {
             console.error('動畫循環中發生錯誤:', error);
             
@@ -1168,6 +1191,22 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM 已載入 - 開始初始化背景曲線');
     
     try {
+        // 檢查環境與功能
+        if (!canRunBackgroundFeatures()) {
+            console.warn('瀏覽器不支援背景動畫的必要功能，將跳過初始化背景效果。');
+            return;
+        }
+
+        // respects prefers-reduced-motion
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const prefersReduced = mq && mq.matches;
+
+        // if user prefers reduced motion we skip heavy animations but keep basic layout
+        if (prefersReduced) {
+            console.info('使用者設定 prefers-reduced-motion: reduce，背景動畫將被禁用以節省資源。');
+            // still allow manual re-init via debugBackgroundCanvas.reinitialize
+            return;
+        }
         // 確保 canvas 元素存在
         if (!document.getElementById('background-canvas')) {
             console.warn('找不到 background-canvas 元素，將自動創建');
@@ -1176,9 +1215,16 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.insertBefore(canvas, document.body.firstChild);
         }
         
-        // 初始化背景曲線
-        const bgLines = new BackgroundLines();
-        console.log('背景曲線已成功初始化');
+        // 初始化背景曲線 (wrap in try to catch initial errors)
+        let bgLines = null;
+        try {
+            bgLines = new BackgroundLines();
+            // expose instance for debugging/control
+            if (window.debugBackgroundCanvas) window.debugBackgroundCanvas._currentInstance = bgLines;
+            console.log('背景曲線已成功初始化');
+        } catch (initErr) {
+            console.error('初始化背景曲線時發生錯誤 (初始化階段):', initErr);
+        }
     } catch (error) {
         console.error('初始化背景曲線時發生錯誤:', error);
     }
@@ -1230,6 +1276,27 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('滾動效果已設置');
     } catch (scrollError) {
         console.error('設置滾動效果時發生錯誤:', scrollError);
+    }
+});
+
+// Pause animation on page visibility change and resume when visible (if not reduced motion)
+document.addEventListener('visibilitychange', function() {
+    try {
+        const canvas = document.getElementById('background-canvas');
+        if (!canvas) return;
+        // try to find bg instance via debug tool (best-effort)
+        if (window.debugBackgroundCanvas && window.debugBackgroundCanvas._currentInstance) {
+            const inst = window.debugBackgroundCanvas._currentInstance;
+            if (document.hidden) {
+                inst._paused = true;
+                if (inst._animFrameId) cancelAnimationFrame(inst._animFrameId);
+            } else {
+                inst._paused = false;
+                if (!inst._reducedMotion) inst.animate();
+            }
+        }
+    } catch (e) {
+        console.warn('visibilitychange 處理時出錯:', e);
     }
 });
 
