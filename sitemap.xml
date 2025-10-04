@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+    <!-- Generated: 2025-10-05 -->
+
+    <url>
+      <loc>https://interaction.tw/</loc>
+      <lastmod>2025-10-05</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.8</priority>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_4720.jpg</image:loc>
+        <image:caption>《行動裝置》— 探索共生與生存挑戰</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/BEE_9639.jpg</image:loc>
+        <image:caption>《聽與見─植物的靈魂》— 植物感知與聲音互動</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/symbiotic_forest.jpg</image:loc>
+        <image:caption>《義。枝》— 仿生機械與自然共構裝置</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_5377.jpg</image:loc>
+        <image:caption>《意識行動》— 去中心的光感社群裝置</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_5433.jpg</image:loc>
+        <image:caption>《植生。虛與實》— 植物生長與虛擬感知裝置</image:caption>
+      </image:image>
+    </url>
+
+    <!-- Individual project pages (external mediadesignlab links) -->
+    <url>
+      <loc>https://mediadesignlab.blogspot.com/2025/04/mobile-device.html</loc>
+      <lastmod>2025-04-01</lastmod>
+      <changefreq>yearly</changefreq>
+      <priority>0.4</priority>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_4720.jpg</image:loc>
+        <image:caption>《行動裝置》</image:caption>
+      </image:image>
+    </url>
+
+    <url>
+      <loc>https://mediadesignlab.blogspot.com/2025/06/acts-of-consciousness-michael-marder.html</loc>
+      <lastmod>2025-06-01</lastmod>
+      <changefreq>yearly</changefreq>
+      <priority>0.4</priority>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_5377.jpg</image:loc>
+        <image:caption>《意識行動》</image:caption>
+      </image:image>
+    </url>
+
+    <url>
+      <loc>https://mediadesignlab.blogspot.com/2025/06/presence-real-and-virtual-vegetative.html</loc>
+      <lastmod>2025-06-01</lastmod>
+      <changefreq>yearly</changefreq>
+      <priority>0.4</priority>
+      <image:image>
+        <image:loc>https://interaction.tw/images/IMG_5433.jpg</image:loc>
+        <image:caption>《植生。虛與實》</image:caption>
+      </image:image>
+    </url>
+
+    <!-- Student work thumbnails -->
+    <url>
+      <loc>https://interaction.tw/student-work/</loc>
+      <lastmod>2025-10-05</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.5</priority>
+      <image:image>
+        <image:loc>https://interaction.tw/images/student_work/dogo.png</image:loc>
+        <image:caption>DOGO</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/student_work/jengolor.png</image:loc>
+        <image:caption>Jengolor</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/student_work/huemelody.png</image:loc>
+        <image:caption>Huemelody</image:caption>
+      </image:image>
+      <image:image>
+        <image:loc>https://interaction.tw/images/student_work/tableware.png</image:loc>
+        <image:caption>Tableware</image:caption>
+      </image:image>
+    </url>
+
+    <!-- icons (not necessary to index but included for completeness) -->
+    <url>
+      <loc>https://interaction.tw/images/icon/</loc>
+      <lastmod>2025-10-05</lastmod>
+      <changefreq>yearly</changefreq>
+      <priority>0.2</priority>
+    </url>
+
+    <!-- Additional owned domains (Synology) -->
+    <url>
+      <loc>https://chenwei.synology.me/</loc>
+      <lastmod>2025-10-05</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.5</priority>
+    </url>
+
+    <url>
+      <loc>https://chenwei.synology.me/mediawiki/</loc>
+      <lastmod>2025-09-27</lastmod>
+      <changefreq>monthly</changefreq>
+      <priority>0.6</priority>
+    </url>
+
+</urlset>

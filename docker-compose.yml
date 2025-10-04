@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  web:
+    # 使用當前目錄下的 Dockerfile 來建構映像檔
+    build: .
+    # 將本機的 8080 port 映射到容器的 80 port
+    ports:
+      - "8080:80"
+    # 將當前目錄掛載到容器的 /var/www/html 目錄
+    volumes:
+      - .:/var/www/html
+    # 設定容器內的環境變數
+    environment:
+      # 從 .env 檔案讀取 GEMINI_API_KEY
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # 設定 Apache 的 ServerName 以避免啟動警告 (可選)
+      APACHE_SERVER_NAME: localhost

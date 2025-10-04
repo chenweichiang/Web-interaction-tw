@@ -1,0 +1,526 @@
+/* 全局重設 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 背景 Canvas */
+#background-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #ffffff;
+}
+
+/* 內容區塊的共同樣式 - 確保所有內容區域保持統一的透明度 */
+section {
+    background-color: rgba(255, 255, 255, 0.8); /* 統一為所有區塊設定80%不透明度，使20%背景可見 */
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+    padding: 5rem 0;
+}
+
+/* 社交媒體按鈕 */
+.social-button {
+    display: inline-block;
+    background-color: #f1f1f1;
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    text-transform: lowercase;
+    border: none;
+    line-height: 0.9rem; /* 確保文字行高一致 */
+}
+
+.social-button:hover {
+    background-color: #e0e0e0;
+    opacity: 1;
+}
+
+/* Threads 按鈕特定樣式 */
+.threads-button {
+    margin-left: 10px;
+    font-size: 0.9rem;
+}
+
+/* 容器 */
+.container {
+    width: 80%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 0;
+    background-color: transparent; /* 確保容器本身是透明的 */
+}
+
+/* 導航欄 */
+header {
+    background-color: rgba(255, 255, 255, 0.8); /* 讓導航欄也有20%透明度 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 10%;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap; /* 防止文字換行 */
+}
+
+/* 手機版導航欄標誌文字大小調整 */
+@media only screen and (max-width: 768px) {
+    .logo {
+        font-size: 1.05rem; /* 比原本小約 30% (1.5rem * 0.7 = 1.05rem) */
+    }
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* 將元素推到右側 */
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    align-items: center; /* 確保所有項目垂直居中對齊 */
+    margin-right: 0; /* 移除右側邊距 */
+}
+
+/* 社交媒體圖標樣式 */
+.nav-social-icons {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 圖標之間的間距 */
+    margin-left: 25px; /* 與左側導航連結的距離 */
+}
+
+.social-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    display: block; /* 確保圖標總是顯示 */
+}
+
+.social-icon:hover {
+    transform: scale(1.1);
+}
+
+/* 特定放大 Blogspot 圖標 */
+.nav-social-icons a[href*="blogspot.com"] .social-icon {
+    transform: scale(1.3); /* 減小 5% (原 1.375 * 0.95 ≈ 1.3) */
+}
+
+.nav-social-icons a[href*="blogspot.com"] .social-icon:hover {
+    transform: scale(1.4); /* 懸停時也相應減小 (原 1.5 * 0.95 ≈ 1.4) */
+}
+
+/* 特定放大 MediaWiki 圖標 */
+.nav-social-icons a[href*="synology.me"] .social-icon {
+    transform: scale(1.2); /* 放大 20% */
+}
+
+.nav-social-icons a[href*="synology.me"] .social-icon:hover {
+    transform: scale(1.3); /* 懸停時也相應放大 */
+}
+
+.nav-links li {
+    margin-left: 2rem;
+    display: flex; /* 使用彈性盒子佈局 */
+    align-items: center; /* 確保內容垂直居中 */
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s ease;
+    display: inline-block; /* 讓每個連結可以設置垂直內間距 */
+    padding: 8px 0; /* 與 threads 按鈕的上下內間距相同 */
+    line-height: 0.9rem; /* 與 threads 按鈕的字體大小相同 */
+}
+
+.nav-links a:hover {
+    opacity: 0.7;
+}
+
+/* 英雄區塊 */
+.hero {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-top: 4rem;
+    background-color: transparent; /* 英雄區保持完全透明 */
+}
+
+.hero-content h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    color: #333;
+}
+
+.hero-content p {
+    font-size: 1.2rem;
+    color: #666;
+    opacity: 0.8;
+}
+
+/* 區塊標題 */
+section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+    padding-bottom: 1rem;
+    color: #333;
+}
+
+section h2:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 2px;
+    background-color: #333;
+}
+
+/* 關於我 */
+.about {
+    background-color: rgba(250, 250, 250, 0.8); /* 確保統一80%不透明度 */
+    padding: 5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+.about-content {
+    display: flex;
+    justify-content: center;
+}
+
+.about-text {
+    max-width: 800px;
+    text-align: left;
+}
+
+.about-text p {
+    margin-bottom: 1rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+/* 作品集 */
+.portfolio {
+    background-color: rgba(255, 255, 255, 0.8); /* 確保統一80%不透明度 */
+    padding: 5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* 教育與經歷 */
+.education-experience {
+    padding: 5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+.education-experience-content,
+.exhibitions-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.profile-header h3 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-header p {
+    color: #666;
+}
+
+.education-section,
+.experience-section,
+.exhibitions-section {
+    margin-bottom: 2.5rem;
+}
+
+.education-section h3,
+.experience-section h3,
+.exhibitions-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.education-section ul,
+.experience-section ul,
+.exhibitions-section ul {
+    list-style: none;
+}
+
+.education-section li,
+.experience-section li,
+.exhibitions-section li {
+    display: flex;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px dashed #eee;
+}
+
+.education-section li:last-child,
+.experience-section li:last-child,
+.exhibitions-section li:last-child {
+    border-bottom: none;
+}
+
+.year {
+    min-width: 150px;
+    font-weight: 600;
+    color: #333;
+}
+
+.degree,
+.position,
+.exhibition-details {
+    flex-grow: 1;
+    color: #555;
+}
+
+/* 展覽經歷 */
+.exhibitions {
+    background-color: rgba(250, 250, 250, 0.8); /* 確保統一80%不透明度 */
+    padding: 5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+.exhibitions-content {
+    display: flex;
+    justify-content: center;
+    
+}
+
+.exhibitions-list {
+    max-width: 800px;
+    width: 100%;
+    
+}
+
+.exhibitions-list ul {
+    list-style: none;
+}
+
+.exhibitions-list li {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid;
+    padding-bottom: 1rem;
+}
+
+.exhibitions-list .year {
+    min-width: 100px;
+    font-weight: 600;
+    color: #333;
+}
+
+.exhibitions-list .exhibition-name {
+    flex-grow: 1;
+    color: #555;
+}
+
+/* 作品集的其他樣式 */
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.portfolio-item {
+    background-color: rgba(255, 255, 255, 0.8); /* 讓卡片也有20%透明度 */
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.portfolio-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.portfolio-image {
+    height: 200px;
+    background-color: #f0f0f0;
+}
+
+.portfolio-info {
+    padding: 1.5rem;
+}
+
+.portfolio-info h3 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.portfolio-info p {
+    color: #666;
+    opacity: 0.8;
+}
+
+.portfolio-item img {
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+
+/* 已移除 contact 相關樣式 */
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.social-link {
+    text-decoration: none;
+    color: #333;
+    border: 1px solid #eee;
+    padding: 0.5rem 1rem;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.social-link:hover {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+}
+
+/* 頁腳 */
+footer {
+    background-color: rgba(245, 245, 245, 0.8); /* 確保統一80%不透明度 */
+    text-align: center;
+    padding: 2rem 0;
+    border-top: 1px solid rgba(238, 238, 238, 0.8);
+    color: #333;
+}
+
+/* 頁尾社交媒體圖標樣式 */
+.footer-social-icons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 20px;
+}
+
+.footer-social-icons .social-icon {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.3s ease;
+}
+
+.footer-social-icons .social-icon:hover {
+    transform: scale(1.2);
+}
+
+/* 漢堡選單樣式 */
+.hamburger-menu {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1010;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 24px;
+}
+
+.hamburger-line {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #333;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .nav-right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    
+    /* 在手機版隱藏文字導航連結 */
+    .nav-links {
+        display: none;
+    }
+    
+    /* 在手機版調整社交媒體圖標 */
+    .nav-social-icons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        width: auto;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    .social-icon {
+        width: 28px; /* 稍微大一點，便於手機上點擊 */
+        height: 28px;
+    }
+    
+    .hero-content h1 {
+        font-size: 2.5rem;
+    }
+    
+    .portfolio-grid {
+        grid-template-columns: 1fr;
+    }
+}

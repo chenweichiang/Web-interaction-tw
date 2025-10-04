@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://interaction.tw/sitemap.xml
+
+# Host directive (optional)
+Host: interaction.tw
