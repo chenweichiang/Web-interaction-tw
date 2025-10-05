@@ -79,11 +79,3 @@ git reset --hard main.backup
 # 若要把該狀態推回 origin（注意：可能會使用 --force）：
 git push origin main --force
 ```
-
-聯絡與授權
-
-如果您要我代為上傳 `sitemap.xml` 與 `robots.txt` 或直接把目前版本推上 GitHub（包含 force push），請先在對話中明確授權我執行那些操作。我已經在本地完成測試並可協助後續部署步驟。
-
----
-
-謝謝，若要我把 README 再加上更詳細的部署腳本或 CI/CD 工作流程（GitHub Actions/Netlify 等），我可以接著幫您建立範例工作檔。
